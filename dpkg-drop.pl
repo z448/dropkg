@@ -3,6 +3,7 @@
 use warnings;
 use strict;
 use File::Copy;
+use Getopt::Std;
 
 # makes debian binary package (.deb) without need of dpkg
 
@@ -23,27 +24,37 @@ my $parse = sub {
 	}	
 };
 
+my $unpack = sub {
+    my $name = shift;
+    $name = system("perl /tmp/ar -x *.deb");
+};
+
 my $pack = sub {
     my $name = shift;
+    my @shell =();
+
+    while(<DATA>){
+        push @shell, $_;
+    }
+    my $shell = \@shell;;
+
     unless( $name =~/\.deb/){
         $name .= '.deb';
     };
     
     # array ref to hold inline DATA at the tail
-    my $shell = [];
-    while(<DATA>){
-        push $shell, $_;
-    }
     
     # get perl archiver on first run
     ##todo: get rid of curl, use HTTP::Tiny (CORE since 5.13.9) fallback on curl/wget if (< 5.13.9)
-    unless( -e '/tmp/.arpl' ){
+    unless( -e '/tmp/ar' ){
         print "\nUsing curl to get archiver\n";
-        system("curl -#kL https://api.metacpan.org/source/BDFOY/PerlPowerTools-1.007/bin/ar > /tmp/.arpl");
+        system("curl -#kL https://api.metacpan.org/source/BDFOY/PerlPowerTools-1.007/bin/ar > /tmp/ar");
     }
     
     my $shoot = sub {
         my $packer = shift;
+
+
         my $status = system("$packer");
         move('../debian.deb', "$name");
     };
@@ -54,20 +65,26 @@ my $pack = sub {
 
 # die if no control file in ./
 
+
 my $control = 'control';
-print "\n\tmissing control file" . "\n" and die unless(-f 'control');
 
-# get .deb filename from user or parse control file 
+if(defined $ARGV[0] and $ARGV[0] eq '-u'){
+    my $unpacked = $unpack->() and die;
+} else {
+    print "\n\tmissing control file" . "\n" and die unless(-f 'control');
+    
+    # get .deb filename from user or parse control file 
+    ##todo: use Getopt::Std when time is right
+    my $deb = $ARGV[0] || $parse->($control);
 
-##todo: use Getopt::Std when time is right
-my $deb = $ARGV[0] || $parse->($control);
+    # pack all stuff; using shell for now..eventually will use Archive::Tar
+    my $package = $pack->($deb);
+    print $package . " ready\n" if ($package);
+}
 
-# pack all stuff; using shell for now..eventually will use Archive::Tar
-
-my $package = $pack->($deb);
-print $package . " ready\n" if ($package);
 
 __DATA__
 Name,Version,Author,Architecture,Package,Section,Maintainer,Homepage,Description,Depends
-rm -rf DEBIAN && mv control .control && tar czf ../data.tar.gz *;mkdir DEBIAN && cd DEBIAN && mv ../.control control && tar czf ../../control.tar.gz *;cd ../..; echo '2.0' > debian-binary && perl /tmp/.arpl r debian.deb debian-binary control.tar.gz data.tar.gz
+rm -rf DEBIAN && mv control .control && tar czf ../data.tar.gz *;mkdir DEBIAN && cd DEBIAN && mv ../.control control && tar czf ../../control.tar.gz *;cd ../..; echo '2.0' > debian-binary && perl /tmp/ar r debian.deb debian-binary control.tar.gz data.tar.gz
+perl /tmp/ar -x *.deb
 Name: XML-SAX   #name of whatever you are packaging  used in Cydia to search# ; Version: 0.99-1#nr before dash is tool versioon  nr after dash is your build number, increase it after each build#; Author: AuthorName; Architecture: iphoneos-arm; Package: libxml-sax-p5  #deb name will use this value in filename.deb  can be overiden on CLI -n <debname>#; Section: Perl; Maintainer: yourName (nickname) <your@email.com>; Homepage: https://some.website.com  #in Cydia shows up as as button pointing to some.website.com; Depiction: https://some.website.com #like Homepage but renders directly in Cydia package tab#; Depends: libxml-namespacesupport-p5, libxml-sax-base-p5, perl (= 5.14.4) #dependencies with optional version#; Description: Simple API for XML #short description of what you are packaging#;     This optional long description is one line after Description field prepended by whitespace  It will show up in Cydia package tab unless you add 'Depiction' field in which case Depiction value will be used instead
