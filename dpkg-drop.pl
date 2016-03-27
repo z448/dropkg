@@ -5,14 +5,10 @@ use strict;
 use Cwd qw<getcwd>;
 use File::Copy;
 
-# makes debian binary package (.deb) without need of dpkg-deb or any other dependencies;
-# uses curl on first run to get perl 'ar' implementation; might work without it (if you have GNU ar) but not on some platforms (ios with coolstar toolchainn w clang compiler)
-# will not work on windows..but who cares..
-#
+# makes debian binary package (.deb) without need of dpkg-deb 
  
 my $parse = sub {
-	my $c = shift;
-	
+	my $c = shift;	
 	open( my$C, "<", "$c");
 	while(<$C>){
         my( $pkg_name )= ();
