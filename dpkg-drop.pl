@@ -7,6 +7,8 @@ use File::Copy;
 # makes debian binary package (.deb) without need of dpkg
 
 # parse control file to get Package name used as final .deb filename
+##todo parse all fields for additional features
+##then use Version and Architecture in final string
 
 my $parse = sub {
 	my $c = shift;	
@@ -29,13 +31,15 @@ my $pack = sub {
     
     # array ref to hold inline DATA at the tail
     my $shell = [];
-
     while(<DATA>){
         push $shell, $_;
     }
+    
+    # get perl archiver on first run
+    ##todo: get rid of curl, use HTTP::Tiny (CORE since 5.13.9) fallback on curl/wget if (< 5.13.9)
     unless( -e '/tmp/.arpl' ){
-        system("curl -#kL https://api.metacpan.org/source/BDFOY/PerlPowerTools-1.007/bin/ar > /tmp/.arpl");
         print "\nUsing curl to get archiver\n";
+        system("curl -#kL https://api.metacpan.org/source/BDFOY/PerlPowerTools-1.007/bin/ar > /tmp/.arpl");
     }
     
     my $shoot = sub {
@@ -53,7 +57,13 @@ my $pack = sub {
 my $control = 'control';
 print "\n\tmissing control file" . "\n" and die unless(-f 'control');
 
+# get .deb filename from user or parse control file 
+
+##todo: use Getopt::Std when time is right
 my $deb = $ARGV[0] || $parse->($control);
+
+# pack all stuff; using shell for now..eventually will use Archive::Tar
+
 my $package = $pack->($deb);
 print $package . " ready\n" if ($package);
 
