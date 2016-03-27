@@ -1,5 +1,9 @@
 ###dropkg
 
+*getopt.pl error workaround*
+:-/ ar is using Perl4::CoreLib module - try `cpan Perl4::CoreLibs` as temp fix
+
+
 Makes debian binary package without need of dpkg. 
 
 *Not a replacement of dpkg as title might suggest, it's meant to be used for packing quick custom builds which could be then installed by dpkg or just unpacked into any directory. It uses perl ar-chiver which is dowloaded on first run. Wont mess your PATH or current ar-chiver as it's placed into tmp directory and doesn't have execute permissions*
