@@ -47,8 +47,10 @@ my $pack = sub {
     # get perl archiver on first run
     ##todo: get rid of curl, use HTTP::Tiny (CORE since 5.13.9) fallback on curl/wget if (< 5.13.9)
     unless( -e '/tmp/ar' ){
+        system("mkdir /tmp/dropkg");
         print "\nUsing curl to get archiver\n";
-        system("curl -#kL https://api.metacpan.org/source/BDFOY/PerlPowerTools-1.007/bin/ar > /tmp/ar");
+        system("curl -#kL https://api.metacpan.org/source/ZEFRAM/Perl4-CoreLibs-0.003/lib/getopts.pl > /tmp/dropkg/getopts.pl");
+        system("curl -#kL https://api.metacpan.org/source/BDFOY/PerlPowerTools-1.007/bin/ar > /tmp/dropkg/ar");
     }
     
     my $shoot = sub {
