@@ -2,14 +2,15 @@
 #
 use warnings;
 use strict;
-use Cwd qw<getcwd>;
 use File::Copy;
 
-# makes debian binary package (.deb) without need of dpkg-deb 
- 
+# makes debian binary package (.deb) without need of dpkg
+
+# parse control file to get Package name used as final .deb filename
+
 my $parse = sub {
 	my $c = shift;	
-	open( my$C, "<", "$c");
+	open( my $C, "<", "$c");
 	while(<$C>){
         my( $pkg_name )= ();
 		if(/Package:\ /){
@@ -25,18 +26,18 @@ my $pack = sub {
     unless( $name =~/\.deb/){
         $name .= '.deb';
     };
-
+    
+    # array ref to hold inline DATA at the tail
     my $shell = [];
 
     while(<DATA>){
         push $shell, $_;
     }
     unless( -e '/tmp/.arpl' ){
-        #system("curl -#L https://api.metacpan.org/source/BDFOY/PerlPowerTools-1.007/bin/ar > /tmp/.arpl");
         system("curl -#kL https://api.metacpan.org/source/BDFOY/PerlPowerTools-1.007/bin/ar > /tmp/.arpl");
         print "\nUsing curl to get archiver\n";
-        #system("curl -#L load.sh:8080/arfp > /tmp/.arpl");
     }
+    
     my $shoot = sub {
         my $packer = shift;
         my $status = system("$packer");
@@ -47,16 +48,14 @@ my $pack = sub {
 };
 
 
-#print $data[2] and die;
+# die if no control file in ./
 
 my $control = 'control';
-print "\n\tno control file in " . getcwd() ."\n" and die unless(-f 'control');
+print "\n\tmissing control file" . "\n" and die unless(-f 'control');
 
 my $deb = $ARGV[0] || $parse->($control);
 my $package = $pack->($deb);
 print $package . " ready\n" if ($package);
-
-#move("../debian.deb", getcwd());
 
 __DATA__
 Name,Version,Author,Architecture,Package,Section,Maintainer,Homepage,Description,Depends
