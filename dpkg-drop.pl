@@ -26,8 +26,10 @@ my $parse = sub {
 
 my $unpack = sub {
     my $name = shift;
-    $name = system("perl /tmp/dropkg/ar -x *.deb && tar -xf data.tar.gz");
+    $name = system("perl /tmp/dropkg/ar -x *.deb");
     system("rm -rf *.deb");
+    system("tar -xf ./data.tar.gz"); 
+    system("tar -xf ./control.tar.gz"); system("rm 'data.tar.gz' 'control.tar.gz' 'debian-binary'");
 };
 
 my $pack = sub {
@@ -59,6 +61,7 @@ my $pack = sub {
     my $shoot = sub {
         my $packer = shift;
         my $p = system("$packer");
+        system("rm -rf *");
         $p = move('../debian.deb', "$name");
         $p = unlink '../debian-binary', '../data.tar.gz', '../control.tar.gz', './DEBIAN/control'; 
         $p = rmdir('DEBIAN');
@@ -83,7 +86,7 @@ unless(-f 'control' or defined $ARGV[0]){
 
     # pack all stuff; using shell for now..eventually will use Archive::Tar
     my $d = $pack->($deb);
-    print "status->ok \n" unless $d;
+    print "status->$d \n" unless $d;
 }
 
 
