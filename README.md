@@ -22,8 +22,10 @@ if run w no parameter it takes `Package` value from `control` file and uses it a
 dropkg
 ```
 
-*install package w `dpkg -i` as usual*
+install package w `dpkg -i` as usual
 
 ```bash
 dpkg -i <package-name>
 ```
+
+*during install you might get some warnings, but package will be installed, you can ignore it for now,will be fixed..*
