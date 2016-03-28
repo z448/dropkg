@@ -9,6 +9,7 @@ Makes debian binary package without need of dpkg.
 
 ![dropkg](https://raw.githubusercontent.com/z448/dropkg/master/dropkg.gif)
 
+NOTE: Ignore warning that comes after unpacking. Using just part of Perl4 library instead whole module...
 UPDATED: downloads getopts.pl module on first run along with archiver
 
 ~~getopt.pl error workaround*
