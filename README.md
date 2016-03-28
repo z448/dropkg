@@ -7,7 +7,7 @@ Makes debian binary package without need of dpkg.
 
 *Not a replacement of dpkg as title might suggest, it's meant to be used for packing quick custom builds which could be then installed by dpkg or just unpacked into any directory. It uses perl ar-chiver which is dowloaded on first run. Wont mess your PATH or current ar-chiver as it's placed into tmp directory and doesn't have execute permissions*
 
-
+![dropkg](https://raw.githubusercontent.com/z448/dropkg/master/dropkg.gif)
 UPDATED: downloads getopts.pl module on first run along with archiver
 
 ~~getopt.pl error workaround*
