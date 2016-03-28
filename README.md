@@ -9,6 +9,7 @@ Makes debian binary package without need of dpkg.
 
 
 UPDATED: downloads getopts.pl module on first run along with archiver
+
 ~~getopt.pl error workaround*
 :-/ ar is using Perl4::CoreLib module - try `cpan Perl4::CoreLibs` as temp fix~~
 
@@ -40,4 +41,5 @@ install package w `dpkg -i` as usual
 dpkg -i <package-name>
 ```
 
-*during install you might get some warnings, but package will be installed, you can ignore it for now,will be fixed..*
+
+~~*during install you might get some warnings, but package will be installed, you can ignore it for now,will be fixed..*~~
