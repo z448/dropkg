@@ -1,16 +1,18 @@
 ###dropkg
 
-
-
-
 Makes debian binary package without need of dpkg. 
 
-*Not a replacement of dpkg as title might suggest, it's meant to be used for packing quick custom builds which could be then installed by dpkg or just unpacked into any directory. It uses perl ar-chiver which is dowloaded on first run. Wont mess your PATH or current ar-chiver as it's placed into tmp directory and doesn't have execute permissions*
+*Not a replacement of dpkg as title might suggest, it's meant to be used for packing quick custom builds which could be then installed by dpkg or just unpacked into any directory.*
+
+It uses perl ar-chiver which is dowloaded on first run. Wont mess your PATH or current ar-chiver as it's placed into tmp directory and doesn't have execute permissions. In case you want to keep libd just copy them from /tmp/dropkg ..*
 
 ![dropkg](https://raw.githubusercontent.com/z448/dropkg/master/dropkg.gif)
 
-NOTE: Ignore warning that comes after unpacking. Using just part of Perl4 library instead whole module...
 UPDATED: downloads getopts.pl module on first run along with archiver
+
+~~NOTE: Ignore warning that comes after unpacking. Using just part of Perl4 library instead whole module...~~
+
+
 
 ~~getopt.pl error workaround*
 :-/ ar is using Perl4::CoreLib module - try `cpan Perl4::CoreLibs` as temp fix~~
