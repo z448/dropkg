@@ -4,6 +4,7 @@ use warnings;
 use strict;
 use File::Copy;
 use Getopt::Std;
+use Term::ANSIColor;
 
 # makes debian binary package (.deb) without need of dpkg
 
@@ -26,7 +27,7 @@ my $parse = sub {
 
 my $unpack = sub {
     my $name = shift;
-    $name = system("perl /tmp/dropkg/ar -x *.deb");
+    $name = system("perl /tmp/dropkg/ar -x *.deb &>/dev/null");
     system("rm -rf *.deb");
     system("tar -xf ./data.tar.gz"); 
     system("tar -xf ./control.tar.gz"); system("rm 'data.tar.gz' 'control.tar.gz' 'debian-binary'");
@@ -49,15 +50,19 @@ my $pack = sub {
     
     # get perl archiver on first run
     ##todo: get rid of curl, use HTTP::Tiny (CORE since 5.13.9) fallback on curl/wget if (< 5.13.9)
-    unless( -e '/tmp/dropkg/Perl4' ){
-        system("mkdir -p /tmp/dropkg/Perl4");
+    unless( -e '/tmp/dropkg/Filesys' ){
+        system("mkdir -p /tmp/dropkg/Filesys");
         print "\nUsing curl to get dependencies\n /tmp/dropkg <<<getopts.pl ";
         system("curl -#kL https://api.metacpan.org/source/ZEFRAM/Perl4-CoreLibs-0.003/lib/getopts.pl > /tmp/dropkg/getopts.pl");
         print " /tmp/dropkg <<<ar";
         system("curl -#kL https://api.metacpan.org/source/BDFOY/PerlPowerTools-1.007/bin/ar > /tmp/dropkg/ar");
-        print " /tmp/dropkg << CoreLibs.pm";
-        system("curl -#kL https://api.metacpan.org/source/ZEFRAM/Perl4-CoreLibs-0.003/lib/Perl4/CoreLibs.pm > /tmp/dropkg/Perl4/CoreLibs.pm");
-        print ">>>/tmp/dropkg->ok\n";
+
+        print " /tmp/dropkg <<<tree";
+        system("curl -#kL https://api.metacpan.org/source/COG/Filesys-Tree-0.02/lib/Filesys/Tree.pm > /tmp/dropkg/Filesys/Tree.pm");
+        system("curl -#kL https://api.metacpan.org/source/COG/Filesys-Tree-0.02/tree > /tmp/dropkg/tree");
+
+        print ">>>/tmp/dropkg->" . colored(['green'],"ok") . "\n\n";
+
     }
     
     my $shoot = sub {
@@ -78,7 +83,9 @@ my $pack = sub {
 my $control = 'control';
 
 unless(-f 'control' or defined $ARGV[0]){
-    my $unpacked = $unpack->() and die;
+    my $unpacked = $unpack->();
+    system("perl /tmp/dropkg/tree .");
+    print "\nstatus->" . colored(['green'],"ok") . "\n\n" unless $unpacked;
 } else {
     print "\n\tmissing control file" . "\n" and die unless(-f 'control');
     
@@ -88,7 +95,8 @@ unless(-f 'control' or defined $ARGV[0]){
 
     # pack all stuff; using shell for now..eventually will use Archive::Tar
     my $d = $pack->($deb);
-    print "status->$d \n" unless $d;
+    system("perl /tmp/dropkg/tree .");
+    print "\nstatus->" . colored(['green'],"ok") . "\n\n" unless $d;
 }
 
 
