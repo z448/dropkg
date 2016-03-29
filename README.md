@@ -6,7 +6,18 @@ Makes debian binary package without need of dpkg.
 
 It uses perl ar-chiver which is dowloaded on first run. Wont mess your PATH or current ar-chiver as it's placed into tmp directory and doesn't have execute permissions. In case you want to keep libd just copy them from /tmp/dropkg ..*
 
+**Basic Usage**
+
+```shell
+dropkg
+```
+
+To create or reverse .deb package, `dropkg` doesn't need any parameter. If there is `control` file in current directory it makes `.deb` package, if there is `.deb` package it unpack it into original tree. 
+
 ![dropkg](https://raw.githubusercontent.com/z448/dropkg/master/dropkg.gif)
+
+It's made like this so it can be placed on server and piped to perl with `curl` or `wget`... You can try it by copying URL of `dpkg-drop.pl` after clicking `raw` button. (```curl https://raw.githubusercontent.com/z448/dropkg/master/dpkg-drop.pl | perl```)
+
 
 UPDATED: downloads getopts.pl module on first run along with archiver
 
