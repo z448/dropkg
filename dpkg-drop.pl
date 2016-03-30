@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-#
+# works for deb<->undeb + gets dependencies on init for control or .deb in ./
 use warnings;
 use strict;
 use File::Copy;
