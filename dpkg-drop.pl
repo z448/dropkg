@@ -15,15 +15,19 @@ use Term::ANSIColor;
 
 my $parse = sub {
 	my $c = shift;	
+    my $control = {};
 	open( my $C, "<", "$c");
 	while(<$C>){
-        my( $pkg_name )= ();
-		if(/Package:\ /){
-			s/(.*?\:\ )(.*)$/$2/m;
-            $pkg_name = $2;
-            return $pkg_name;
+		if(/\:/){
+            s/(.*?)(:\ )(.*)/$1$3/;
+            $control->{$1} = $3;
 		}
-	}	
+	}
+    if($c eq 'control'){
+        return $control->{Package};
+    } else {
+        return $control;
+    }
 };
 
 my $unpack = sub {
