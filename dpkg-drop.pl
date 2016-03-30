@@ -13,6 +13,7 @@ use Term::ANSIColor;
 ##todo parse all fields for additional features
 ##then use Version and Architecture in final string
 
+# 
 my  $switch = {};
 getopts('i', $switch);
 
@@ -27,18 +28,30 @@ my $parse = sub {
 		}
 	}
     if($c eq 'control'){
-        return $control->{Package};
+        my $file_name = $control->{Package} . '-' . $control->{Architecture} . '-' . $control->{Version};
+        return $file_name;
     } else {
         return $control;
     }
 };
 
+
+##todo: quick draft, needs rewrite! 
 my $unpack = sub {
     my $name = shift;
     system("perl -I /tmp/dropkg /tmp/dropkg/ar -x ./$name &>/dev/null");
-    system("tar -xf data.tar.gz"); 
+
     system("tar -xf control.tar.gz");
-    system("rm $name 'data.tar.gz' 'control.tar.gz' 'debian-binary'");
+    system("tar -xf data.tar.gz");
+    system("rm control.tar.gz debian-binary data.tar.gz");
+
+    unless( $switch->{i} ){
+        system("rm $name"); 
+    } else {
+        move( "$name", "$ENV{HOME}/.dropkg"); 
+        move( "control", "$ENV{HOME}/.dropkg");
+        system("cp -r * $ENV{HOME}");
+    }
 };
 
 my $pack = sub {
@@ -56,7 +69,6 @@ my $pack = sub {
     
     # array ref to hold inline DATA at the tail
     
-    # get perl archiver on first run
     ##todo: get rid of curl, use HTTP::Tiny (CORE since 5.13.9) fallback on curl/wget if (< 5.13.9)
     my $shoot = sub {
         my $packer = shift;
@@ -79,13 +91,17 @@ my $stash = '/tmp/dropkg';
 my $tree = "perl -I $stash /tmp/dropkg/tree .";
 my $dir = '.';
 
+
+# get perl dependencies  on first run; tar & Filesys::Tree not necessary but tree is quite usefull for this stuff + it's not on iOS; geting tar makes it all pure-perl therefore might work on win.. 
 my $init = sub {
     my $libs = [];
     
+#quick draft, needs proper handling when using -i switch for custom install to keep track of installation paths etc; kind of what dpkg does with control files/.list 
     unless( -d "$ENV{HOME}/.dropkg" ){
         system("mkdir $ENV{HOME}/.dropkg");
     }
 
+    #todo: URL should go to DATA and curl replaced with HTTP::Tiny
     unless( -d "$stash/Filesys" ){
         system("mkdir -p $stash/Filesys");
         print "\nUsing curl to get dependencies\n $stash <<<getopts.pl ";
@@ -110,22 +126,25 @@ my $init = sub {
 my $mode = sub {
     my $path = shift;
     my( $status ) = ();
-    $init->();
+    my $libs = $init->();
     my $file = [];
+
+    # if we see 'control' here (.) -> making package
     find( sub { if(/^control$/){
                 my $deb = $ARGV[0] || $parse->($control);
                 $status = $pack->($deb);
                 print "\nstatus->" . colored(['green'],"ok") . "\n\n" unless $status;
+
+    # if we see '*.deb' here (.) -> unpacking package
             } elsif (/\.deb$/){
 
-
-                print "----------- $_ ----------";
+    # unpack closure needs to check if we're installing or just unpacking, if there is -i switch from user -> doing custom install and data pack needs to be unpacked into $HOME (defaul) directory
                 $status = $unpack->($_);
 
+                # bookeeper; needs .storage (JSON, Dumper or Storable..?)
                 if( $switch->{i} ){
                     my $tracker = $_ . '.control';
                     $status = move('./control', "$ENV{HOME}/.dropkg/$tracker");
-                    system("mv * $ENV{HOME}");
                 }
                 print "\nstatus->" . colored(['green'],"ok") . "\n\n" unless $status;
             }}, $path);
@@ -134,9 +153,6 @@ my $mode = sub {
 
 #print 'init-> ';  for( @{$init->()} ){ print $_ . '   '}; print "\n\n";
 #print 'mode-> ';  for( @{$mode->($dir)} ){ print $_ . '   '}; print "\n";
-
-
-# get .deb filename from user or parse control file 
 
 $mode->($dir);
 
