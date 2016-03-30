@@ -13,6 +13,9 @@ use Term::ANSIColor;
 ##todo parse all fields for additional features
 ##then use Version and Architecture in final string
 
+my  $switch = {};
+getopts('i', $switch);
+
 my $parse = sub {
 	my $c = shift;	
     my $control = {};
@@ -73,12 +76,16 @@ my $pack = sub {
 my $url_base = 'https://api.metacpan.org/source';
 my $control = 'control';
 my $stash = '/tmp/dropkg';
-my $dir = '.';
 my $tree = "perl -I $stash /tmp/dropkg/tree .";
+my $dir = '.';
 
 my $init = sub {
     my $libs = [];
     
+    unless( -d "$ENV{HOME}/.dropkg" ){
+        system("mkdir $ENV{HOME}/.dropkg");
+    }
+
     unless( -d "$stash/Filesys" ){
         system("mkdir -p $stash/Filesys");
         print "\nUsing curl to get dependencies\n $stash <<<getopts.pl ";
@@ -110,8 +117,16 @@ my $mode = sub {
                 $status = $pack->($deb);
                 print "\nstatus->" . colored(['green'],"ok") . "\n\n" unless $status;
             } elsif (/\.deb$/){
+
+
                 print "----------- $_ ----------";
                 $status = $unpack->($_);
+
+                if( $switch->{i} ){
+                    my $tracker = $_ . '.control';
+                    $status = move('./control', "$ENV{HOME}/.dropkg/$tracker");
+                    system("mv * $ENV{HOME}");
+                }
                 print "\nstatus->" . colored(['green'],"ok") . "\n\n" unless $status;
             }}, $path);
     system("$tree");
