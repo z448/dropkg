@@ -3,6 +3,7 @@
 use warnings;
 use strict;
 use File::Copy;
+use File::Find;
 use Getopt::Std;
 use Term::ANSIColor;
 
@@ -27,10 +28,10 @@ my $parse = sub {
 
 my $unpack = sub {
     my $name = shift;
-    $name = system("perl /tmp/dropkg/ar -x *.deb &>/dev/null");
-    system("rm -rf *.deb");
-    system("tar -xf ./data.tar.gz"); 
-    system("tar -xf ./control.tar.gz"); system("rm 'data.tar.gz' 'control.tar.gz' 'debian-binary'");
+    system("perl -I /tmp/dropkg /tmp/dropkg/ar -x ./$name &>/dev/null");
+    system("tar -xf data.tar.gz"); 
+    system("tar -xf control.tar.gz");
+    system("rm $name 'data.tar.gz' 'control.tar.gz' 'debian-binary'");
 };
 
 my $pack = sub {
@@ -50,21 +51,6 @@ my $pack = sub {
     
     # get perl archiver on first run
     ##todo: get rid of curl, use HTTP::Tiny (CORE since 5.13.9) fallback on curl/wget if (< 5.13.9)
-    unless( -e '/tmp/dropkg/Filesys' ){
-        system("mkdir -p /tmp/dropkg/Filesys");
-        print "\nUsing curl to get dependencies\n /tmp/dropkg <<<getopts.pl ";
-        system("curl -#kL https://api.metacpan.org/source/ZEFRAM/Perl4-CoreLibs-0.003/lib/getopts.pl > /tmp/dropkg/getopts.pl");
-        print " /tmp/dropkg <<<ar";
-        system("curl -#kL https://api.metacpan.org/source/BDFOY/PerlPowerTools-1.007/bin/ar > /tmp/dropkg/ar");
-
-        print " /tmp/dropkg <<<tree";
-        system("curl -#kL https://api.metacpan.org/source/COG/Filesys-Tree-0.02/lib/Filesys/Tree.pm > /tmp/dropkg/Filesys/Tree.pm");
-        system("curl -#kL https://api.metacpan.org/source/COG/Filesys-Tree-0.02/tree > /tmp/dropkg/tree");
-
-        print ">>>/tmp/dropkg->" . colored(['green'],"ok") . "\n\n";
-
-    }
-    
     my $shoot = sub {
         my $packer = shift;
         my $p = system("$packer");
@@ -80,24 +66,57 @@ my $pack = sub {
 # die if no control file in ./
 
 
+my $url_base = 'https://api.metacpan.org/source';
 my $control = 'control';
+my $stash = '/tmp/dropkg';
+my $dir = '.';
+my $tree = "perl -I $stash /tmp/dropkg/tree .";
 
-unless(-f 'control' or defined $ARGV[0]){
-    my $unpacked = $unpack->();
-    system("perl /tmp/dropkg/tree .");
-    print "\nstatus->" . colored(['green'],"ok") . "\n\n" unless $unpacked;
-} else {
-    print "\n\tmissing control file" . "\n" and die unless(-f 'control');
+my $init = sub {
+    my $libs = [];
     
-    # get .deb filename from user or parse control file 
-    ##todo: use Getopt::Std when time is right
-    my $deb = $ARGV[0] || $parse->($control);
+    unless( -d "$stash/Filesys" ){
+        system("mkdir -p $stash/Filesys");
+        print "\nUsing curl to get dependencies\n $stash <<<getopts.pl ";
+        system("curl -#kL $url_base/ZEFRAM/Perl4-CoreLibs-0.003/lib/getopts.pl > $stash/getopts.pl");
+        print " $stash <<<ar";
+        system("curl -#kL $url_base/BDFOY/PerlPowerTools-1.007/bin/ar > $stash/ar");
 
-    # pack all stuff; using shell for now..eventually will use Archive::Tar
-    my $d = $pack->($deb);
-    system("perl /tmp/dropkg/tree .");
-    print "\nstatus->" . colored(['green'],"ok") . "\n\n" unless $d;
-}
+        print " $stash <<<tree";
+        system("curl -#kL $url_base/COG/Filesys-Tree-0.02/lib/Filesys/Tree.pm > $stash/Filesys/Tree.pm");
+        system("curl -#kL $url_base/COG/Filesys-Tree-0.02/tree > $stash/tree");
+
+        print ">>>$stash/dropkg->" . colored(['green'],"ok") . "\n\n";
+
+    }
+    find( sub { push $libs, $File::Find::name if (-f $_) }, $stash ); 
+    return $libs;
+};
+
+my $mode = sub {
+    my $path = shift;
+    my( $status ) = ();
+    $init->();
+    my $file = [];
+    find( sub { if(/^control$/){
+                my $deb = $ARGV[0] || $parse->($control);
+                $status = $pack->($deb);
+                print "\nstatus->" . colored(['green'],"ok") . "\n\n" unless $status;
+            } elsif (/\.deb$/){
+                print "----------- $_ ----------";
+                $status = $unpack->($_);
+                print "\nstatus->" . colored(['green'],"ok") . "\n\n" unless $status;
+            }}, $path);
+    system("$tree");
+};
+
+#print 'init-> ';  for( @{$init->()} ){ print $_ . '   '}; print "\n\n";
+#print 'mode-> ';  for( @{$mode->($dir)} ){ print $_ . '   '}; print "\n";
+
+
+# get .deb filename from user or parse control file 
+
+$mode->($dir);
 
 
 __DATA__
