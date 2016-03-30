@@ -89,8 +89,11 @@ my $init = sub {
         print " $stash <<<tree";
         system("curl -#kL $url_base/COG/Filesys-Tree-0.02/lib/Filesys/Tree.pm > $stash/Filesys/Tree.pm");
         system("curl -#kL $url_base/COG/Filesys-Tree-0.02/tree > $stash/tree");
+        print " $stash <<<tar";
+        system("curl -#kL $url_base/BDFOY/PerlPowerTools-1.007/bin/tar > $stash/tar");
 
-        print ">>>$stash/dropkg->" . colored(['green'],"ok") . "\n\n";
+
+        print "   tree|ar|tar>>>$stash/dropkg->" . colored(['green'],"ok") . "\n\n";
 
     }
     find( sub { push $libs, $File::Find::name if (-f $_) }, $stash ); 
