@@ -60,4 +60,6 @@ dpkg -i <package-name>
 ```
 
 
+*fixed*
+
 ~~*during install you might get some warnings, but package will be installed, you can ignore it for now,will be fixed..*~~
