@@ -119,7 +119,7 @@ my $init = sub {
         print "   tree|ar|tar>>>$stash/dropkg->" . colored(['green'],"ok") . "\n\n";
 
     }
-    find( sub { push $libs, $File::Find::name if (-f $_) }, $stash ); 
+    find( sub { push @$libs, $File::Find::name if (-f $_) }, $stash ); 
     return $libs;
 };
 
