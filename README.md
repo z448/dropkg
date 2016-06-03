@@ -27,18 +27,6 @@ To create or reverse .deb package, `dropkg` doesn't need any parameter. If there
 
 It's made like this so it can be placed on server and piped to perl with `curl` or `wget`... You can try it by copying URL of `dpkg-drop.pl` after clicking `raw` button. (```curl https://raw.githubusercontent.com/z448/dropkg/master/dpkg-drop.pl | perl```)
 
-**using curl**
-
-![curl](https://raw.githubusercontent.com/z448/dropkg/master/curl-dropkg.gif)
-
-UPDATED: downloads getopts.pl module on first run along with archiver
-
-~~NOTE: Ignore warning that comes after unpacking. Using just part of Perl4 library instead whole module...~~
-
-
-
-~~getopt.pl error workaround*
-:-/ ar is using Perl4::CoreLib module - try `cpan Perl4::CoreLibs` as temp fix~~
 
 NOTE: In case you are packaging Perl5 module, see `dpp` instead..
 
