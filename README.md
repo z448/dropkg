@@ -1,5 +1,14 @@
 ###dropkg
 
+UPDATE: make/unmake .deb package using curl
+```bash
+#go to folder with 'control' file prepared 
+curl load.sh/dropkg|perl
+```
+
+![dropkg-curl](https://raw.githubusercontent.com/z448/dropkg/master/dropkg-curl.gif)
+
+
 Makes debian binary package without need of dpkg. 
 
 *Not a replacement of dpkg as title might suggest, it's meant to be used for packing quick custom builds which could be then installed by dpkg or just unpacked into any directory.*
