@@ -21,7 +21,7 @@ It uses perl ar-chiver which is dowloaded on first run. Wont mess your PATH or c
 dropkg
 ```
 
-To create or reverse .deb package, `dropkg` doesn't need any parameter. If there is `control` file in current directory it makes `.deb` package, if there is `.deb` package it unpack it into original tree. 
+To create or reverse .deb package, `dropkg` doesn't need any parameter. If there is `control` file in current directory it makes `.deb` package, if there is `.deb` package it unpack it into original tree. Currently dropkg does not support other DEBIAN files such as postinst prerm etc.
 
 ![dropkg](https://raw.githubusercontent.com/z448/dropkg/master/dropkg.gif)
 
