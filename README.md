@@ -25,9 +25,6 @@ To create or reverse .deb package, `dropkg` doesn't need any parameter. If there
 
 ![dropkg](https://raw.githubusercontent.com/z448/dropkg/master/dropkg.gif)
 
-It's made like this so it can be placed on server and piped to perl with `curl` or `wget`... You can try it by copying URL of `dpkg-drop.pl` after clicking `raw` button. (```curl https://raw.githubusercontent.com/z448/dropkg/master/dpkg-drop.pl | perl```)
-
-
 NOTE: In case you are packaging Perl5 module, see `dpp` instead..
 
 **Install**
@@ -42,9 +39,7 @@ First create `directory`, place all files + `control` file in it as you would do
 dropkg <package-name>
 ```
 
-*or*
-
-if run w no parameter it takes `Package` value from `control` file and uses it as `package-name`
+If run with no parameter it takes `Package-Architecture-Version` values from `control` file and uses it as `package-name.deb`
 
 ```bash
 dropkg
