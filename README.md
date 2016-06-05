@@ -13,7 +13,11 @@ Makes debian binary package without need of dpkg.
 
 *Not a replacement of dpkg as title might suggest, it's meant to be used for packing quick custom builds which could be then installed by dpkg or just unpacked into any directory.*
 
-It uses perl ar-chiver which is dowloaded on first run. Wont mess your PATH or current ar-chiver as it's placed into tmp directory and doesn't have execute permissions. In case you want to keep libd just copy them from /tmp/dropkg ..*
+###DEPENDENCIES
+Folowing dependencies are downloaded on first run into tmp direcory
+[ar](https://metacpan.org/pod/PerlPowerTools), [Filesys::Tree](https://metacpan.org/pod/Filesys::Tree), [getopts.pl](https://metacpan.org/pod/Perl4::CoreLibs)
+
+It uses perl ar-chiver which is dowloaded on first run. In case you want to keep libraries just copy them from /tmp/dropkg ..*
 
 **Basic Usage**
 
