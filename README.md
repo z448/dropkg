@@ -21,12 +21,9 @@ It uses perl ar-chiver which is dowloaded on first run. Wont mess your PATH or c
 dropkg
 ```
 
-To create or reverse .deb package, `dropkg` doesn't need any parameter. If there is `control` file in current directory it makes `.deb` package, if there is `.deb` package it unpack it into original tree. 
+To create or reverse .deb package, `dropkg` doesn't need any parameter. If there is `control` file in current directory it makes `.deb` package, if there is `.deb` package it unpack it into original tree. Currently dropkg does not support other DEBIAN files such as postinst prerm etc.
 
 ![dropkg](https://raw.githubusercontent.com/z448/dropkg/master/dropkg.gif)
-
-It's made like this so it can be placed on server and piped to perl with `curl` or `wget`... You can try it by copying URL of `dpkg-drop.pl` after clicking `raw` button. (```curl https://raw.githubusercontent.com/z448/dropkg/master/dpkg-drop.pl | perl```)
-
 
 NOTE: In case you are packaging Perl5 module, see `dpp` instead..
 
@@ -42,9 +39,7 @@ First create `directory`, place all files + `control` file in it as you would do
 dropkg <package-name>
 ```
 
-*or*
-
-if run w no parameter it takes `Package` value from `control` file and uses it as `package-name`
+If run with no parameter it takes `Package-Architecture-Version` values from `control` file and uses it as `package-name.deb`
 
 ```bash
 dropkg
