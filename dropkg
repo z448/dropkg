@@ -43,6 +43,15 @@ my $parse = sub {
     }
 };
 
+my $install_deb = sub {
+    my $name = shift;
+    my $control_installed = $name . '.control';
+    my $control_install_status = move("$dir/control", "$ENV{HOME}/.dropkg/$control_installed");
+# bookeeper; needs .storage (JSON, Dumper or Storable..?)
+   print $control_installed;
+   print "\ncontrol install status: "; print $control_install_status . "\n";
+   die;
+};
 
 ##todo: quick draft, needs rewrite! 
 my $unpack = sub {
@@ -54,8 +63,8 @@ my $unpack = sub {
     system("tar -xf $dir/data.tar.gz");
     system("rm $dir/control.tar.gz $dir/debian-binary $dir/data.tar.gz");
 
-    unless( $switch->{i} ){
-        system("rm $dir/$name"); 
+    if( defined $switch->{i} ){ 
+        $install_deb->($name) and die;
     } else {
         move( "$dir/$name", "$ENV{HOME}/.dropkg"); 
         move( "$dir/control", "$ENV{HOME}/.dropkg");
@@ -165,15 +174,10 @@ my $mode = sub {
                 # if we see '*.deb' here (.) -> unpacking package
             } elsif(/.*\.deb$/){
                 print "\nfound $_\n";
+
 # unpack closure needs to check if we're installing or just unpacking, if there is -i switch from user -> doing custom install and data pack needs to be unpacked into $HOME (defaul) directory
                 print "\nunpack "; print $unpack->($_);
                 system("$tree");
-                if( defined $switch->{i} ){
-# bookeeper; needs .storage (JSON, Dumper or Storable..?)
-                    my $control = $file->[0] . '.control';
-                    my $control_install_status = move("$dir/control", "$ENV{HOME}/.dropkg/$control");
-                    print "\ncontrol install: "; print $control_install_status . "\n";
-                }
             } 
     }
 };
