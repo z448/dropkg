@@ -48,9 +48,9 @@ my $install = sub {
     my $control_install_status = move("$dir/control", "$ENV{HOME}/.dropkg/$control_installed");
     print "\ncontrol install status: "; print $control_install_status . "\n";
 
-    my $make_path = mkpath("$ENV{HOME}/local");
-    copy("$dir/data.tar.gz", "$ENV{HOME}/local");
-    system("cd $ENV{HOME}/local && tar -xvf $ENV{HOME}/local/data.tar.gz");
+    #my $make_path = mkpath("$ENV{HOME}/local");
+    copy("$dir/data.tar.gz", "$ENV{HOME}");
+    system("cd $ENV{HOME} && tar -xvf $ENV{HOME}/data.tar.gz");
     print $dir;
 };
 
