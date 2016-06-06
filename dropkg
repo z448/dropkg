@@ -168,9 +168,9 @@ my $mode = sub {
 # unpack closure needs to check if we're installing or just unpacking, if there is -i switch from user -> doing custom install and data pack needs to be unpacked into $HOME (defaul) directory
                 print "\nunpack "; print $unpack->($_);
                 system("$tree");
-                if( $switch->{i} ){
+                if( defined $switch->{i} ){
 # bookeeper; needs .storage (JSON, Dumper or Storable..?)
-                    my $control = $_ . '.control';
+                    my $control = $file->[0] . '.control';
                     my $control_install_status = move("$dir/control", "$ENV{HOME}/.dropkg/$control");
                     print "\ncontrol install: "; print $control_install_status . "\n";
                 }
