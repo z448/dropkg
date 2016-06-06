@@ -2,10 +2,12 @@
 # works for deb<->undeb + gets dependencies on init for control or .deb in ./
 use warnings;
 use strict;
+use Cwd qw< abs_path >;
 use File::Copy;
 use File::Find;
 use Getopt::Std;
 use Term::ANSIColor;
+use open qw< :encoding(UTF-8) >;
 
 # makes debian binary package (.deb) without need of dpkg
 
@@ -16,6 +18,12 @@ use Term::ANSIColor;
 # 
 my  $switch = {};
 getopts('i', $switch);
+my $url_base = 'https://api.metacpan.org/source';
+my $control = 'control';
+my $stash = '/tmp/dropkg';
+my $tree = "perl -I $stash /tmp/dropkg/tree .";
+my $dir = abs_path('.');
+
 
 my $parse = sub {
 	my $c = shift;	
@@ -39,63 +47,48 @@ my $parse = sub {
 ##todo: quick draft, needs rewrite! 
 my $unpack = sub {
     my $name = shift;
-    system("perl -I /tmp/dropkg /tmp/dropkg/ar -x ./$name &>/dev/null");
-
-    system("tar -xf control.tar.gz");
-    system("tar -xf data.tar.gz");
-    system("rm control.tar.gz debian-binary data.tar.gz");
+    #print "$dir/$name" and die;
+    system("perl -I /tmp/dropkg /tmp/dropkg/ar -x $dir/$name 2>&1");
+    #system("perl -I /tmp/dropkg /tmp/dropkg/ar -x $dir/$name &>/dev/null");
+    system("tar -xf $dir/control.tar.gz");
+    system("tar -xf $dir/data.tar.gz");
+    system("rm $dir/control.tar.gz $dir/debian-binary $dir/data.tar.gz");
 
     unless( $switch->{i} ){
-        system("rm $name"); 
+        system("rm $dir/$name"); 
     } else {
-        move( "$name", "$ENV{HOME}/.dropkg"); 
-        move( "control", "$ENV{HOME}/.dropkg");
-        system("cp -r * $ENV{HOME}");
+        move( "$dir/$name", "$ENV{HOME}/.dropkg"); 
+        move( "$dir/control", "$ENV{HOME}/.dropkg");
+        system("cp -r $dir/* $ENV{HOME}");
     }
 };
 
 my $pack = sub {
     my $name = shift;
-    my @shell =();
+    my @shell = ();
 
-    while(<DATA>){
-        push @shell, $_;
-    }
+    # array ref to hold inline DATA at the tail
+    while(<DATA>){ push @shell, $_ }
     my $shell = \@shell;;
 
-    unless( $name =~/\.deb/){
-        $name .= '.deb';
-    };
-    
-    # array ref to hold inline DATA at the tail
+    # add .deb
+    unless( $name =~/\.deb/){ $name .= '.deb' };
     
     ##todo: get rid of curl, use HTTP::Tiny (CORE since 5.13.9) fallback on curl/wget if (< 5.13.9)
     my $shoot = sub {
-        my $packer = shift;
-        my $p = system("$packer");
-        system("rm -rf *");
-        $p = move('../debian.deb', "$name");
-        $p = unlink '../debian-binary', '../data.tar.gz', '../control.tar.gz', './DEBIAN/control'; 
-        $p = rmdir('DEBIAN');
+        my $packer = system(shift);
+        $packer = system("rm -rf $dir/*") unless $packer;
+        $packer = move("$dir/../debian.deb", "$name");
+        $packer = unlink "$dir/../debian-binary", "$dir/../data.tar.gz", "$dir/../control.tar.gz"; 
+        #$packer = rmdir("$dir/../DEBIAN");
     };
     $shoot->($shell->[1]);
 };
 
-
-# die if no control file in ./
-
-
-my $url_base = 'https://api.metacpan.org/source';
-my $control = 'control';
-my $stash = '/tmp/dropkg';
-my $tree = "perl -I $stash /tmp/dropkg/tree .";
-my $dir = '.';
-
-
 # get perl dependencies  on first run; tar & Filesys::Tree not necessary but tree is quite usefull for this stuff + it's not on iOS; geting tar makes it all pure-perl therefore might work on win.. 
 my $init = sub {
     my $libs = [];
-    
+
 #quick draft, needs proper handling when using -i switch for custom install to keep track of installation paths etc; kind of what dpkg does with control files/.list 
     unless( -d "$ENV{HOME}/.dropkg" ){
         system("mkdir $ENV{HOME}/.dropkg");
@@ -112,12 +105,7 @@ my $init = sub {
         print " $stash <<<tree";
         system("curl -#kL $url_base/COG/Filesys-Tree-0.02/lib/Filesys/Tree.pm > $stash/Filesys/Tree.pm");
         system("curl -#kL $url_base/COG/Filesys-Tree-0.02/tree > $stash/tree");
-        print " $stash <<<tar";
-        system("curl -#kL $url_base/BDFOY/PerlPowerTools-1.007/bin/tar > $stash/tar");
-
-
-        print "   tree|ar|tar>>>$stash/dropkg->" . colored(['green'],"ok") . "\n\n";
-
+        print "   tree|ar>>>$stash/dropkg->" . colored(['green'],"ok") . "\n\n";
     }
     find( sub { push @$libs, $File::Find::name if (-f $_) }, $stash ); 
     return $libs;
@@ -128,27 +116,39 @@ my $mode = sub {
     my( $status ) = ();
     my $libs = $init->();
     my $file = [];
+    print "path: $path";
 
-    # if we see 'control' here (.) -> making package
-    find( sub { if(/^control$/){
+    ### if we see 'control' here (.) -> making package
+    find( { 
+            wanted => sub { 
+                #$File::Find::prune = 1;
+                #print "\n" . "found: $File::Find::name" . "\n";
+                push @$file, $_ 
+            }}, $path );
+    #--
+
+    for(@$file){
+            if( $_ eq 'control' ){
+                print "\nfound: $_\n";
                 my $deb = $ARGV[0] || $parse->($control);
                 $status = $pack->($deb);
                 print "\nstatus->" . colored(['green'],"ok") . "\n\n" unless $status;
-
-    # if we see '*.deb' here (.) -> unpacking package
-            } elsif (/\.deb$/){
-
-    # unpack closure needs to check if we're installing or just unpacking, if there is -i switch from user -> doing custom install and data pack needs to be unpacked into $HOME (defaul) directory
+                system("$tree");
+                # if we see '*.deb' here (.) -> unpacking package
+            } elsif(/.*\.deb$/){
+                print "found $_";
+# unpack closure needs to check if we're installing or just unpacking, if there is -i switch from user -> doing custom install and data pack needs to be unpacked into $HOME (defaul) directory
                 $status = $unpack->($_);
-
-                # bookeeper; needs .storage (JSON, Dumper or Storable..?)
+                system("$tree");
+                return;
                 if( $switch->{i} ){
+# bookeeper; needs .storage (JSON, Dumper or Storable..?)
                     my $tracker = $_ . '.control';
                     $status = move('./control', "$ENV{HOME}/.dropkg/$tracker");
                 }
                 print "\nstatus->" . colored(['green'],"ok") . "\n\n" unless $status;
-            }}, $path);
-    system("$tree");
+            } 
+    }
 };
 
 #print 'init-> ';  for( @{$init->()} ){ print $_ . '   '}; print "\n\n";
