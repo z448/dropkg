@@ -48,7 +48,8 @@ my $parse = sub {
 my $unpack = sub {
     my $name = shift;
     #print "$dir/$name" and die;
-    system("perl -I /tmp/dropkg /tmp/dropkg/ar -x $dir/$name &>/dev/null");
+    system("perl -I /tmp/dropkg /tmp/dropkg/ar -x $dir/$name 2>&1");
+    #system("perl -I /tmp/dropkg /tmp/dropkg/ar -x $dir/$name &>/dev/null");
     system("tar -xf $dir/control.tar.gz");
     system("tar -xf $dir/data.tar.gz");
     system("rm $dir/control.tar.gz $dir/debian-binary $dir/data.tar.gz");
