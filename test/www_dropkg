@@ -49,16 +49,16 @@ my $unpack = sub {
     my $name = shift;
     #print "$dir/$name" and die;
     system("perl -I /tmp/dropkg /tmp/dropkg/ar -x $dir/$name &>/dev/null");
-    system("tar -xf control.tar.gz");
-    system("tar -xf data.tar.gz");
-    system("rm control.tar.gz debian-binary data.tar.gz");
+    system("tar -xf $dir/control.tar.gz");
+    system("tar -xf $dir/data.tar.gz");
+    system("rm $dir/control.tar.gz $dir/debian-binary $dir/data.tar.gz");
 
     unless( $switch->{i} ){
-        system("rm $name"); 
+        system("rm $dir/$name"); 
     } else {
-        move( "$name", "$ENV{HOME}/.dropkg"); 
-        move( "control", "$ENV{HOME}/.dropkg");
-        system("cp -r * $ENV{HOME}");
+        move( "$dir/$name", "$ENV{HOME}/.dropkg"); 
+        move( "$dir/control", "$ENV{HOME}/.dropkg");
+        system("cp -r $dir/* $ENV{HOME}");
     }
 };
 
