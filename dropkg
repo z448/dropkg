@@ -17,7 +17,7 @@ use open qw< :encoding(UTF-8) >;
 
 # 
 my  $switch = {};
-getopts('it', $switch);
+getopts('ite', $switch);
 my $url_base = 'https://api.metacpan.org/source';
 my $control = 'control';
 my $stash = '/tmp/dropkg';
@@ -113,15 +113,27 @@ my $init = sub {
 
 my $control_template = sub {
     my $shell = [];
-    my @control = ();
+    my @control_template = ();
+    my @control_example = ();
     
     while(<DATA>){ push @$shell, $_ }
     {
         $_ = $shell->[0];
-        @control = /\S+/g;
+        @control_template = /\S+/g;
     }
-    for( @control ){ $_ = $_ . "\n" }
-    return \@control;
+    {
+        $_ = $shell->[3];
+        @control_example = /\S+/g;
+    }
+    for( @control_template ){ $_ = $_ . "\n" }
+    for( @control_example ){ $_ = $_ . "\n" }
+    $control->{control_template} = \@control_template;
+    $control->{control_example} = \@control_example;
+    if( defined $switch->{t} ){ 
+        return $control->{control_template};
+    elsif( defined $switch->{e} ){
+        return $control->{control_example};
+    } 
 };
 
 my $mode = sub {
