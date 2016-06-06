@@ -26,16 +26,16 @@ my $dir = abs_path('.');
 
 
 my $parse = sub {
-	my $c = shift;	
+	my $control_file = shift;	
     my $control = {};
-	open( my $C, "<", "$c");
-	while(<$C>){
+	open( my $fh, "<", "$control_file") || die "cant open $control_file: $!";
+	while(<$fh>){
 		if(/\:/){
             s/(.*?)(:\ )(.*)/$1$3/;
             $control->{$1} = $3;
 		}
 	}
-    if($c eq 'control'){
+    if($control_file eq 'control'){
         my $file_name = $control->{Package} . '-' . $control->{Architecture} . '-' . $control->{Version};
         return $file_name;
     } else {
