@@ -46,10 +46,8 @@ my $parse = sub {
 ##todo: quick draft, needs rewrite! 
 my $unpack = sub {
     my $name = shift;
-    $name = $dir . '/' . $name;
-    print $name and die;
+    #print "$dir/$name" and die;
     system("perl -I /tmp/dropkg /tmp/dropkg/ar -x $dir/$name &>/dev/null");
-
     system("tar -xf control.tar.gz");
     system("tar -xf data.tar.gz");
     system("rm control.tar.gz debian-binary data.tar.gz");
@@ -65,7 +63,7 @@ my $unpack = sub {
 
 my $pack = sub {
     my $name = shift;
-    my @shell =();
+    my @shell = ();
 
     # array ref to hold inline DATA at the tail
     while(<DATA>){ push @shell, $_ }
@@ -76,12 +74,11 @@ my $pack = sub {
     
     ##todo: get rid of curl, use HTTP::Tiny (CORE since 5.13.9) fallback on curl/wget if (< 5.13.9)
     my $shoot = sub {
-        my $packer = shift;
-        my $p = system("$packer");
-        system("rm -rf *");
-        $p = move('../debian.deb', "$name");
-        $p = unlink '../debian-binary', '../data.tar.gz', '../control.tar.gz', './DEBIAN/control'; 
-        $p = rmdir('DEBIAN');
+        my $packer = system(shift);
+        $packer = system("rm -rf $dir/*") unless $packer;
+        $packer = move("$dir/../debian.deb", "$name");
+        $packer = unlink "$dir/../debian-binary", "$dir/../data.tar.gz", "$dir/../control.tar.gz"; 
+        #$packer = rmdir("$dir/../DEBIAN");
     };
     $shoot->($shell->[1]);
 };
@@ -125,26 +122,26 @@ my $mode = sub {
     ### if we see 'control' here (.) -> making package
     find( { 
             wanted => sub { 
-                $File::Find::prune = 1;
+                #$File::Find::prune = 1;
                 #print "\n" . "found: $File::Find::name" . "\n";
-                print "\n" . "found: $_" . "\n";
                 push @$file, $_ 
             }}, $path );
     #--
 
     for(@$file){
             if( $_ eq 'control' ){
-                die "found control";
+                print "\nfound: $_\n";
                 my $deb = $ARGV[0] || $parse->($control);
                 $status = $pack->($deb);
                 print "\nstatus->" . colored(['green'],"ok") . "\n\n" unless $status;
                 system("$tree");
                 # if we see '*.deb' here (.) -> unpacking package
-            } if(/\.deb$/){
-                die "found .deb";
+            } elsif(/.*\.deb$/){
+                print "found $_";
 # unpack closure needs to check if we're installing or just unpacking, if there is -i switch from user -> doing custom install and data pack needs to be unpacked into $HOME (defaul) directory
                 $status = $unpack->($_);
                 system("$tree");
+                return;
                 if( $switch->{i} ){
 # bookeeper; needs .storage (JSON, Dumper or Storable..?)
                     my $tracker = $_ . '.control';
