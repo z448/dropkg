@@ -17,7 +17,7 @@ use open qw< :encoding(UTF-8) >;
 
 # 
 my  $switch = {};
-getopts('i', $switch);
+getopts('it', $switch);
 my $url_base = 'https://api.metacpan.org/source';
 my $control = 'control';
 my $stash = '/tmp/dropkg';
@@ -111,12 +111,29 @@ my $init = sub {
     return $libs;
 };
 
+my $control_template = sub {
+    my $shell = [];
+    my @control = ();
+    
+    while(<DATA>){ push @$shell, $_ }
+    {
+        $_ = $shell->[0];
+        @control = /\S+/g;
+    }
+    for( @control ){ $_ = $_ . "\n" }
+    return \@control;
+};
+
 my $mode = sub {
-    my $path = shift;
-    my( $status ) = ();
-    my $libs = $init->();
+    #my $path = shift;
+    #my( $control_install ) = ();
     my $file = [];
-    print "path: $path";
+    print 'libs: '; print @{$init->()} . "\n";
+    #print "path: $path";
+
+    ### control template
+    if( defined $switch->{t} ){ print @{$control_template->()}; return }
+
 
     ### if we see 'control' here (.) -> making package
     find( { 
@@ -124,29 +141,28 @@ my $mode = sub {
                 #$File::Find::prune = 1;
                 #print "\n" . "found: $File::Find::name" . "\n";
                 push @$file, $_ 
-            }}, $path );
+            }}, $dir);
+    #}}, $path );
     #--
 
     for(@$file){
             if( $_ eq 'control' ){
                 print "\nfound: $_\n";
                 my $deb = $ARGV[0] || $parse->($control);
-                $status = $pack->($deb);
-                print "\nstatus->" . colored(['green'],"ok") . "\n\n" unless $status;
+                print "\npack: "; print $pack->($deb);
                 system("$tree");
                 # if we see '*.deb' here (.) -> unpacking package
             } elsif(/.*\.deb$/){
-                print "found $_";
+                print "\nfound $_\n";
 # unpack closure needs to check if we're installing or just unpacking, if there is -i switch from user -> doing custom install and data pack needs to be unpacked into $HOME (defaul) directory
-                $status = $unpack->($_);
+                print "\nunpack "; print $unpack->($_);
                 system("$tree");
-                return;
                 if( $switch->{i} ){
 # bookeeper; needs .storage (JSON, Dumper or Storable..?)
-                    my $tracker = $_ . '.control';
-                    $status = move('./control', "$ENV{HOME}/.dropkg/$tracker");
+                    my $control = $_ . '.control';
+                    my $control_install_status = move("$dir/control", "$ENV{HOME}/.dropkg/$control");
+                    print "\ncontrol install: "; print $control_install_status . "\n";
                 }
-                print "\nstatus->" . colored(['green'],"ok") . "\n\n" unless $status;
             } 
     }
 };
@@ -154,11 +170,11 @@ my $mode = sub {
 #print 'init-> ';  for( @{$init->()} ){ print $_ . '   '}; print "\n\n";
 #print 'mode-> ';  for( @{$mode->($dir)} ){ print $_ . '   '}; print "\n";
 
-$mode->($dir);
+$mode->();
 
 
 __DATA__
-Name,Version,Author,Architecture,Package,Section,Maintainer,Homepage,Description,Depends
+Name: Version: Author: Architecture: Package: Section: Maintainer: Homepage: Description: Depends:
 rm -rf DEBIAN && mv control .control && tar czf ../data.tar.gz *;mkdir DEBIAN && cd DEBIAN && mv ../.control control && tar czf ../../control.tar.gz *;cd ../..; echo '2.0' > debian-binary && perl -I/tmp/dropkg /tmp/dropkg/ar r debian.deb debian-binary control.tar.gz data.tar.gz
 perl /tmp/dropkg/ar -x *.deb
 Name: XML-SAX   #name of whatever you are packaging  used in Cydia to search# ; Version: 0.99-1#nr before dash is tool versioon  nr after dash is your build number, increase it after each build#; Author: AuthorName; Architecture: iphoneos-arm; Package: libxml-sax-p5  #deb name will use this value in filename.deb  can be overiden on CLI -n <debname>#; Section: Perl; Maintainer: yourName (nickname) <your@email.com>; Homepage: https://some.website.com  #in Cydia shows up as as button pointing to some.website.com; Depiction: https://some.website.com #like Homepage but renders directly in Cydia package tab#; Depends: libxml-namespacesupport-p5, libxml-sax-base-p5, perl (= 5.14.4) #dependencies with optional version#; Description: Simple API for XML #short description of what you are packaging#;     This optional long description is one line after Description field prepended by whitespace  It will show up in Cydia package tab unless you add 'Depiction' field in which case Depiction value will be used instead
