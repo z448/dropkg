@@ -7,6 +7,7 @@ use File::Copy;
 use File::Find;
 use Getopt::Std;
 use Term::ANSIColor;
+use open qw< :encoding(UTF-8) >;
 
 # makes debian binary package (.deb) without need of dpkg
 
@@ -103,10 +104,7 @@ my $init = sub {
         print " $stash <<<tree";
         system("curl -#kL $url_base/COG/Filesys-Tree-0.02/lib/Filesys/Tree.pm > $stash/Filesys/Tree.pm");
         system("curl -#kL $url_base/COG/Filesys-Tree-0.02/tree > $stash/tree");
-        print " $stash <<<tar";
-        system("curl -#kL $url_base/BDFOY/PerlPowerTools-1.007/bin/tar > $stash/tar");
-
-        print "   tree|ar|tar>>>$stash/dropkg->" . colored(['green'],"ok") . "\n\n";
+        print "   tree|ar>>>$stash/dropkg->" . colored(['green'],"ok") . "\n\n";
     }
     find( sub { push @$libs, $File::Find::name if (-f $_) }, $stash ); 
     return $libs;
