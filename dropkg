@@ -16,7 +16,7 @@ use open qw< :encoding(UTF-8) >;
 ##then use Version and Architecture in final string
 
 # 
-my  $switch = {};
+my $switch = {};
 getopts('ite', $switch);
 my $url_base = 'https://api.metacpan.org/source';
 my $control = 'control';
@@ -111,8 +111,9 @@ my $init = sub {
     return $libs;
 };
 
-my $control_template = sub {
+my $control_help = sub {
     my $shell = [];
+    my $control = {};
     my @control_template = ();
     my @control_example = ();
     
@@ -122,30 +123,28 @@ my $control_template = sub {
         @control_template = /\S+/g;
     }
     {
-        $_ = $shell->[3];
-        @control_example = /\S+/g;
+        my $control_example = $shell->[3];
+        push @control_example, split(/\;/, $control_example); 
+        #@control_example = s/\;/\n/g;
     }
+
     for( @control_template ){ $_ = $_ . "\n" }
     for( @control_example ){ $_ = $_ . "\n" }
     $control->{control_template} = \@control_template;
     $control->{control_example} = \@control_example;
-    if( defined $switch->{t} ){ 
-        return $control->{control_template};
-    elsif( defined $switch->{e} ){
-        return $control->{control_example};
-    } 
+    return $control;
 };
 
 my $mode = sub {
-    #my $path = shift;
+    my $path = shift;
     #my( $control_install ) = ();
     my $file = [];
-    print 'libs: '; print @{$init->()} . "\n";
     #print "path: $path";
 
     ### control template
-    if( defined $switch->{t} ){ print @{$control_template->()}; return }
-
+    if( defined $switch->{t} ){ print @{$control_help->(){control_template}} and return }
+    elsif( defined $switch->{e} ){ print @{$control_help->(){control_example}} and return }
+    print 'libs: '; print 'ok' . "\n" unless $init->(); 
 
     ### if we see 'control' here (.) -> making package
     find( { 
@@ -189,4 +188,4 @@ __DATA__
 Name: Version: Author: Architecture: Package: Section: Maintainer: Homepage: Description: Depends:
 rm -rf DEBIAN && mv control .control && tar czf ../data.tar.gz *;mkdir DEBIAN && cd DEBIAN && mv ../.control control && tar czf ../../control.tar.gz *;cd ../..; echo '2.0' > debian-binary && perl -I/tmp/dropkg /tmp/dropkg/ar r debian.deb debian-binary control.tar.gz data.tar.gz
 perl /tmp/dropkg/ar -x *.deb
-Name: XML-SAX   #name of whatever you are packaging  used in Cydia to search# ; Version: 0.99-1#nr before dash is tool versioon  nr after dash is your build number, increase it after each build#; Author: AuthorName; Architecture: iphoneos-arm; Package: libxml-sax-p5  #deb name will use this value in filename.deb  can be overiden on CLI -n <debname>#; Section: Perl; Maintainer: yourName (nickname) <your@email.com>; Homepage: https://some.website.com  #in Cydia shows up as as button pointing to some.website.com; Depiction: https://some.website.com #like Homepage but renders directly in Cydia package tab#; Depends: libxml-namespacesupport-p5, libxml-sax-base-p5, perl (= 5.14.4) #dependencies with optional version#; Description: Simple API for XML #short description of what you are packaging#;     This optional long description is one line after Description field prepended by whitespace  It will show up in Cydia package tab unless you add 'Depiction' field in which case Depiction value will be used instead
+Name: XML-SAX #name of whatever you are packaging  used in Cydia to search;Version: 0.99-1 #nr before dash is tool versioon  nr after dash is your build number, increase it after each build;Author: Author Name;Architecture: iphoneos-arm;Package: libxml-sax-p5 #deb name will use this value in filename.deb  can be overiden on CLI -n <debname>;Section: Perl;Maintainer: yourName (nickname) <your@email.com>;Homepage: https://some.website.com #in Cydia shows up as as link pointing to some.website.com;Depiction: https://some.website.com #like Homepage but renders directly in Cydia package tab;Depends: libxml-namespacesupport-p5, libxml-sax-base-p5, perl (>= 5.14.4) #dependencies with optional version;Description: Simple API for XML #short description of what you are packaging;_space_ This optional long description is one line after Description field prepended by whitespace. It will show up in Cydia package tab unless you add 'Depiction' field in which case Depiction value will be used instead;see debian maintenance guide for more info https://www.debian.org/doc/manuals/maint-guide/dreq.en.html#control
