@@ -3,6 +3,7 @@
 use warnings;
 use strict;
 use Cwd qw< abs_path >;
+use JSON::PP;
 use File::Copy;
 use File::Find;
 use File::Path;
@@ -18,6 +19,7 @@ use open qw< :encoding(UTF-8) >;
 # 
 my $switch = {};
 getopts('ite', $switch);
+my $dropkg_base = "$ENV{HOME}/.dropkg";
 my $url_base = 'https://api.metacpan.org/source';
 my $control = 'control';
 my $stash = '/tmp/dropkg';
@@ -42,16 +44,44 @@ my $parse_control = sub {
     }
 };
 
+
+### config
+my $config = sub {
+    my $config = {};
+    $config->{name} = shift;
+    $config->{control} = $parse_control->($config->{name});
+
+    my $config_file = "$ENV{HOME}/.dropkg/.config.json";
+
+    my $data_paths = sub {
+        my @data_files = ();
+        find( sub {
+                push @data_files, $_;
+            }, "$dropkg_base/tmp" );
+        return \@data_files;
+    };
+
+    $config->{data_paths} = $data_paths->();
+    $config = encode_json $config;
+    open( my $fh,">",$config_file) || die "cant open $config_file";
+    print $fh $config;
+};
+
+print $config->("$ENV{HOME}/.dropkg/control") and die;
+
 my $install = sub {
     my $name = shift;
     my $control_installed = $name . '.control';
     my $control_install_status = move("$dir/control", "$ENV{HOME}/.dropkg/$control_installed");
     print "\ncontrol install status: "; print $control_install_status . "\n";
 
-    #my $make_path = mkpath("$ENV{HOME}/local");
-    copy("$dir/data.tar.gz", "$ENV{HOME}");
-    system("cd $ENV{HOME} && tar -xvf $ENV{HOME}/data.tar.gz");
-    print $dir;
+    # install to ~/
+    mkpath("$dropkg_base/tmp"};
+    copy("$dir/data.tar.gz", "$dropkg_base/tmp");
+    system("cd $dropkg_base/tmp && tar -xvf $dropkg_base/tmp/data.tar.gz") || die "cant untar data.tar.gz";
+
+    #system("cd $ENV{HOME} && tar -xvf $ENV{HOME}/data.tar.gz");
+
 };
 
 ##todo: quick draft, needs rewrite! 
@@ -195,7 +225,6 @@ my $mode = sub {
 #print 'mode-> ';  for( @{$mode->($dir)} ){ print $_ . '   '}; print "\n";
 
 #$mode->();
-$parse_control->(".dropkg/control");
 
 
 __DATA__
