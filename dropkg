@@ -24,7 +24,7 @@ my $stash = '/tmp/dropkg';
 my $tree = "perl -I $stash /tmp/dropkg/tree .";
 my $dir = abs_path('.');
 
-my $parse = sub {
+my $parse_control = sub {
 	my $control_file = shift;	
     my $control = {};
 	open( my $fh, "<", "$control_file") || die "cant open $control_file: $!";
@@ -177,7 +177,7 @@ my $mode = sub {
             # if we see 'control' here (.) -> making package
             if( $_ eq 'control' ){
                 print "\nfound: $_\n";
-                my $deb = $ARGV[0] || $parse->($control);
+                my $deb = $ARGV[0] || $parse_control->($control);
                 print "\npack: "; print $pack->($deb);
                 system("$tree");
             # if we see '*.deb' here (.) -> unpacking package
@@ -195,7 +195,7 @@ my $mode = sub {
 #print 'mode-> ';  for( @{$mode->($dir)} ){ print $_ . '   '}; print "\n";
 
 #$mode->();
-$parse->(".dropkg/control");
+$parse_control->(".dropkg/control");
 
 
 __DATA__
