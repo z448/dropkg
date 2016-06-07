@@ -194,7 +194,8 @@ my $mode = sub {
 #print 'init-> ';  for( @{$init->()} ){ print $_ . '   '}; print "\n\n";
 #print 'mode-> ';  for( @{$mode->($dir)} ){ print $_ . '   '}; print "\n";
 
-$mode->();
+#$mode->();
+$parse->(".dropkg/control");
 
 
 __DATA__
