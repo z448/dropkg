@@ -31,6 +31,7 @@ my $dir = abs_path('.');
 my $parse_control = sub {
 	my $control_file = shift;	
     my $control = {};
+    my @control = ();
 	open( my $fh, "<", "$control_file") || die "cant open $control_file: $!";
 	while(<$fh>){
 		if(/\:/){
@@ -38,11 +39,12 @@ my $parse_control = sub {
             $control->{$1} = $3;
 		}
 	}
-    if($control_file eq 'control'){
+    if($control_file  =~ /^control$/){
         my $file_name = $control->{Package} . '-' . $control->{Architecture} . '-' . $control->{Version};
         return $file_name;
     } else {
-        return $control;
+        push @control, $control;
+        return \@control;
     }
 };
 
@@ -88,7 +90,7 @@ my $install = sub {
 my $config = sub {
     my $config = {};
     ( $config->{name}, $config->{data_paths} ) = @_;
-    #$config->{control} = $parse_control->($config->{name});
+    $config->{control} = $parse_control->("$dropkg_base/$config->{name}.control");
 
     my $config_file = "$ENV{HOME}/.dropkg/.config.json";
 
@@ -128,6 +130,7 @@ my $unpack = sub {
 
     system("perl -I /tmp/dropkg /tmp/dropkg/ar -x $dir/$deb_file_name 2>&1");
     #system("perl -I /tmp/dropkg /tmp/dropkg/ar -x $dir/$deb_file_name &>/dev/null");
+    print "cwd befire control untar:" .  abs_path('.');
     system("tar -xf $dir/control.tar.gz");
     #system("tar -xf $dir/data.tar.gz");
     if( defined $switch->{i} ){ 
