@@ -20,7 +20,7 @@ use open qw< :encoding(UTF-8) >;
 ##then use Version and Architecture in final string
 # 
 my $switch = {};
-getopts('ite', $switch);
+getopts('ited:', $switch);
 my $dropkg_base = "$ENV{HOME}/.dropkg";
 my $url_base = 'https://api.metacpan.org/source';
 my $control = 'control';
@@ -46,29 +46,6 @@ my $parse_control = sub {
     }
 };
 
-
-### config
-my $config = sub {
-    my $config = {};
-    $config->{name} = shift;
-    $config->{control} = $parse_control->($config->{name});
-
-    my $config_file = "$ENV{HOME}/.dropkg/.config.json";
-
-    my $data_paths = sub {
-        my @data_files = ();
-        find( sub { push @data_files, $_ }, "$dropkg_base/tmp" );
-        return \@data_files;
-    };
-
-    $config->{data_paths} = $data_paths->();
-    $config = encode_json $config;
-    open( my $fh,">",$config_file) || die "cant open $config_file";
-    print $fh $config;
-};
-
-#print $config->("$ENV{HOME}/.dropkg/control") and die;
-
 my $install = sub {
     my $deb_file_name = shift;
     my $control_installed_filename = $deb_file_name . '.control';
@@ -76,11 +53,61 @@ my $install = sub {
     print "\ncontrol install status: "; print $control_install_status . "\n";
 
     # install to ~/.dropkg/tmp 
-    #mkpath("$dropkg_base/tmp");
-    #move("$dir/data.tar.gz", "$dropkg_base/tmp");
-    #my $install_to_tmp = sub { system("cd $dropkg_base/tmp && tar -xvf $dropkg_base/tmp/data.tar.gz") };
-    #print "install to tmp status: "; print $install_to_tmp->();
+    mkpath("$dropkg_base/tmp");
+    move("$dir/data.tar.gz", "$dropkg_base/tmp");
+    my $install_to_tmp = sub { system("cd $dropkg_base/tmp && tar -xf $dropkg_base/tmp/data.tar.gz") };
+    print "install to tmp status: "; print $install_to_tmp->();
+    
+    # find data file paths
+    my $find_data_paths = sub {
+        my $tmp_data_paths = [];
+        find( sub { push @$tmp_data_paths, "$File::Find::name" if -f }, "$dropkg_base/tmp" );
+        for(@$tmp_data_paths){ s/(.*?\.dropkg\/tmp\/)(.*)/$2/ }
+        system("rm -r $dropkg_base/tmp/data.tar.gz");
+        return $tmp_data_paths;
+    }; 
+    
+    my $install_deb = sub {
+        my $data_paths = [];
+        my $tmp_data_paths = $find_data_paths->();
+        my $install_dir = $switch->{d} || $ENV{HOME};
 
+        for(@$tmp_data_paths){ push @$data_paths, "$install_dir/$_" }
+        print "\ninstall dir: $install_dir\n";
+        #print $_ . "\n" for @$data_paths;
+        return $data_paths;
+        #system("mv $dropkg_base/tmp/* $install_dir");
+    };  $install_deb->();
+};
+
+
+    #print $_ . "\n" for @{$find_data_paths->()};
+
+
+### config
+my $config = sub {
+    my $config = {};
+    ( $config->{name}, $config->{data_paths} ) = @_;
+    #$config->{control} = $parse_control->($config->{name});
+
+    my $config_file = "$ENV{HOME}/.dropkg/.config.json";
+
+    #my $data_paths = sub {
+    #    my @data_files = ();
+    #    find( sub { push @data_files, $_ }, "$dropkg_base/tmp" );
+    #    return \@data_files;
+    #};
+
+    $config = encode_json $config;
+    open( my $fh,">",$config_file) || die "cant open $config_file";
+    print $fh $config;
+};
+
+#print $config->("$ENV{HOME}/.dropkg/control") and die;
+
+
+
+=head1
     # find data file paths
     use Archive::Tar;
     my $install_paths = Archive::Tar->new;
@@ -88,11 +115,11 @@ my $install = sub {
     for({$install_paths->list_files){
         print $_ . "\n" if -f;
     }
+=cut
+
 
 
     #system("cd $ENV{HOME} && tar -xvf $ENV{HOME}/data.tar.gz");
-
-};
 
 ##todo: quick draft, needs rewrite! 
 my $unpack = sub {
@@ -104,11 +131,11 @@ my $unpack = sub {
     system("tar -xf $dir/control.tar.gz");
     #system("tar -xf $dir/data.tar.gz");
     if( defined $switch->{i} ){ 
-        $install->($deb_file_name);
+        $config->( $deb_file_name, $install->($deb_file_name) );
+#$install->($deb_file_name);
     }
-    die;
     # cleanup
-    system("rm $dir/control.tar.gz $dir/debian-binary $dir/data.tar.gz");
+    #system("rm $dir/control.tar.gz $dir/debian-binary $dir/data.tar.gz");
 
 =head
     if( defined $switch->{i} ){ 
@@ -223,8 +250,9 @@ my $mode = sub {
             } elsif(/.*\.deb$/){
                 print "\nfound $_\n";
 # unpack needs to check if we're installing or just unpacking, if there is -i switch from user -> doing custom install and data pack needs to be unpacked into $HOME (default) directory
-                print "\nunpack "; print $unpack->($_);
+                print "\nunpack "; $unpack->($_);
                 system("$tree");
+                die;
             } 
     }
 };
