@@ -72,13 +72,14 @@ my $install = sub {
     my $install_deb = sub {
         my $data_paths = [];
         my $tmp_data_paths = $find_data_paths->();
-        my $install_dir = $switch->{d} || $ENV{HOME};
+        mkpath("$ENV{HOME}/tmp_local");
+        my $install_dir = $switch->{d} || "$ENV{HOME}/local";
 
         for(@$tmp_data_paths){ push @$data_paths, "$install_dir/$_" }
         print "\ninstall dir: $install_dir\n";
         #print $_ . "\n" for @$data_paths;
         return $data_paths;
-        #system("mv $dropkg_base/tmp/* $install_dir");
+        system("mv $dropkg_base/tmp/* $install_dir/");
     };  $install_deb->();
 };
 
@@ -89,17 +90,11 @@ my $install = sub {
 ### config
 my $config = sub {
     my $config = {};
-    ( $config->{name}, $config->{data_paths} ) = @_;
-    $config->{control} = $parse_control->("$dropkg_base/$config->{name}.control");
-
     my $config_file = "$ENV{HOME}/.dropkg/.config.json";
 
-    #my $data_paths = sub {
-    #    my @data_files = ();
-    #    find( sub { push @data_files, $_ }, "$dropkg_base/tmp" );
-    #    return \@data_files;
-    #};
-
+    open(my $fh,"<","$control_file")
+    ( $config->{name}, $config->{data_paths} ) = @_;
+    $config->{control} = $parse_control->("$dropkg_base/$config->{name}.control");
     $config = encode_json $config;
     open( my $fh,">",$config_file) || die "cant open $config_file";
     print $fh $config;
