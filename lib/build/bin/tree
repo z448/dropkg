@@ -1,0 +1,185 @@
+#!/usr/bin/perl
+use warnings;
+use strict;
+use 5.006;
+
+use Getopt::Std qw(getopts);
+use Filesys::Tree qw(:all);
+
+our %opts    = get_options();
+
+show_help()	        if $opts{h};
+show_version()	        if $opts{v};
+
+my @dirs = @ARGV ? @ARGV : ('.');
+
+my $config = {
+  'all'              => $opts{a},
+  'directories-only' => $opts{d},
+  'full'             => $opts{f},
+  'follow-links'     => $opts{l},
+  'pattern'          => $opts{p},
+  'max-depth'        => $opts{m},
+  'exclude-pattern'  => $opts{e},
+};
+
+$config->{'max-depth'} ||= -1;
+
+for (@dirs) {
+  show_tree(0, {}, tree( $config, $_ ));
+}
+
+#
+# subroutines
+#
+
+###
+
+sub show_tree {
+  my $level  = shift;
+  my $levels = shift;
+  my $tree   = shift;
+
+  my @keys = sort keys %$tree;
+  while (my $key = shift @keys) {
+    print level($level, scalar @keys, { %$levels}), "$key\n";
+    if (defined $tree->{$key}{contents}) {
+      show_tree($level + 1, { %$levels, $level => scalar @keys }, $tree->{$key}{contents})
+    }
+  }
+}
+
+###
+
+sub level {
+  my $level = "   " x $_[0];
+  $level =~ s/   $/|--/g;
+  for (keys %{$_[2]}) {
+    substr($level,$_ * 3 - 3,1) = '|' if $_[2]->{$_};
+  }
+  $level =~ s/\|--/`--/ unless $_[1];
+  $level;
+}
+
+###
+
+sub get_options {
+        my %opts;
+        getopts('ade:fhlm:pv', \%opts );
+
+        foreach my $key ( keys %opts )
+                {
+                $opts{$key} = 1 unless defined $opts{$key}
+                }
+
+        %opts;
+        }
+
+###
+
+sub show_help {
+  die "Usage: tree directory1 directory2
+ or:   tree -a -p directory1 directory2
+tree: displays a tree like representation of a set of directories
+
+Options:
+  -a           show all files (include dot files)
+  -d           show directories only
+  -e PATTERN   exclude files matching PATTERN
+  -f           show full paths
+  -h           show help and exit
+  -l           follow links
+  -m MAX-DEPTH sets maximum depth for recursion
+  -p PATTERN   only list files matching PATTERN
+  -v           show version and exit
+"
+}
+
+###
+
+sub show_version {
+  die "tree version 0.01 (Filesys::Tree ", Filesys::Tree->VERSION, ")\n";
+}
+
+###
+
+__END__
+
+=head1 NAME
+
+tree - displays a tree-like representation of a set of directories
+
+=head1 IMPORTANT NOTE
+
+This is only version 0.01 . There is a small bug which I'm aware of,
+but my brain is no longer in condition of taking care of me, and my
+stomach is begging me to go out and eat something, which I will :-)
+
+I plan to take care of that bug as soon as possible. It, meanwhile,
+you wish to do that and send me a patch, you're welcome O:-)
+
+Can you find the bug? ;-)
+
+=head1 SYNOPSIS
+
+  tree [OPTIONS] [directory1 directory2 ...]
+
+=head1 DESCRIPTION
+
+Displays a tree-like representation of a set of directories by using
+Perl module Filesys::Tree.
+
+=head2 OPTIONS
+
+=head2 -a
+
+All (by default, files started with a dot are omitted).
+
+=head2 -d
+
+Directories-only mode (skip files).
+
+=head2 -e PATTERN
+
+Exclude files matching PATTERN.
+
+=head2 -f
+
+Display full paths.
+
+=head2 -h
+
+Display help message and exit.
+
+=head2 -l
+
+Follow links.
+
+=head2 -m MAX-DEPTH
+
+Set maximum depth for recursion.
+
+=head2 -p PATTERN
+
+Only list files matching PATTERN.
+
+=head2 -v
+
+Show version and exit.
+
+=head1 SEE ALSO
+
+Filesys::Tree(3).
+
+=head1 AUTHOR
+
+Jose Castro, E<lt>cog@cpan.orgE<gt>
+
+=head1 COPYRIGHT AND LICENSE
+
+Copyright 2004 by Jose Castro
+
+This library is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself. 
+
+=cut

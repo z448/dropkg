@@ -121,7 +121,7 @@ my $unpack = sub {
     my $deb_file_name = shift;
     #print "$dir/$deb_file_name" and die;
 
-    system("which ar && ar -x $dir/$deb_file_name");
+    system("ar -x $dir/$deb_file_name");
     #system("perl -I /tmp/dropkg /tmp/dropkg/ar -x $dir/$deb_file_name 2>&1");
     print "cwd befire control untar:" .  abs_path('.');
     system("tar -xf $dir/control.tar.gz");
@@ -248,6 +248,11 @@ my $mode = sub {
 # unpack needs to check if we're installing or just unpacking, if there is -i switch from user -> doing custom install and data pack needs to be unpacked into $HOME (default) directory
                 print "\nunpack "; $unpack->($_);
                 system("$tree");
+
+                ##
+                print "\nwhichar: ";
+                system("which ar");
+                ##
                 die;
             } 
     }
