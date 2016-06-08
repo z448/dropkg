@@ -92,11 +92,14 @@ my $config = sub {
     my $config = {};
     my $config_file = "$ENV{HOME}/.dropkg/.config.json";
 
-    open(my $fh,"<","$control_file")
+    open(my $fh,"<","$config_file") || die "cant open $config_file: $!";
+    $config = <$fh>;
+    $config = decode_json $config;
+
     ( $config->{name}, $config->{data_paths} ) = @_;
     $config->{control} = $parse_control->("$dropkg_base/$config->{name}.control");
     $config = encode_json $config;
-    open( my $fh,">",$config_file) || die "cant open $config_file";
+    open( $fh,">",$config_file) || die "cant open $config_file";
     print $fh $config;
 };
 
