@@ -72,14 +72,14 @@ my $install = sub {
     my $install_deb = sub {
         my $data_paths = [];
         my $tmp_data_paths = $find_data_paths->();
-        mkpath("$ENV{HOME}/tmp_local");
+        mkpath("$ENV{HOME}/local");
         my $install_dir = $switch->{d} || "$ENV{HOME}/local";
 
         for(@$tmp_data_paths){ push @$data_paths, "$install_dir/$_" }
         print "\ninstall dir: $install_dir\n";
         #print $_ . "\n" for @$data_paths;
+        system("mv $dropkg_base/tmp/* $install_dir");
         return $data_paths;
-        system("mv $dropkg_base/tmp/* $install_dir/");
     };  $install_deb->();
 };
 
@@ -178,6 +178,11 @@ my $init = sub {
 #quick draft, needs proper handling when using -i switch for custom install to keep track of installation paths etc; kind of what dpkg does with control files/.list 
     unless( -d "$ENV{HOME}/.dropkg" ){
         system("mkdir $ENV{HOME}/.dropkg");
+    }
+    unless( -f "$ENV{HOME}/.dropkg/.conf.json" ){
+        open( my $fh,">","$ENV{HOME}/.dropkg/.conf.json") || die "cant open $ENV{HOME}/.dropkg/.conf.json";
+        print $fh '{}';
+        close $fh;
     }
 
     #todo: URL should go to DATA and curl replaced with HTTP::Tiny
