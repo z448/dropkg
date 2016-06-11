@@ -134,7 +134,7 @@ my $config = sub {
     print "\$_[1]: $_[1]\n";
     print "\$[2]: $_[2]\n";
 
-    if( $mode eq 'write' ){ print @{$write->( $_[1], $_[2] )} . " files added to config" . "\n" }
+    if( $mode eq 'write' ){ print Dumper($write->("$_[1]","$_[2]")) }
     if( $mode eq 'find' ){ print 'find results: ' . Dumper($find->("$_[1]")) }
 };
 
@@ -292,7 +292,7 @@ my $start = sub {
                 print "\nfound $_\n";
 # unpack needs to check if we're installing or just unpacking, if there is -i switch from user -> doing custom install and data pack needs to be unpacked into $HOME (default) directory
                 print "\nunpack "; $unpack->($_);
-                system("$tree");
+                #system("$tree");
                 die;
             } 
     }
