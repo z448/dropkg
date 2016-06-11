@@ -102,12 +102,12 @@ my $config = sub {
     my $config_file = "$ENV{HOME}/.dropkg/.config.json";
 
     my $read = sub {
-        my @config = ();
+        #my $config = {};
         open(my $fh,"<","$config_file") || die "cant open $config_file: $!";
 
         my $config = <$fh>;
-        @config = decode_json $config;
-        return \@config
+        $config = decode_json $config;
+        return $config
     };
 
     my $find = sub {
@@ -119,22 +119,27 @@ my $config = sub {
 
     my $write = sub {
         #my @config = @{$read->()};
-        my @config = ();
+        #my @config = ();
         my %config = ();
+        my $dropkg = $read->();
+        #my $dropkg = {};
 
         ( $config{name}, $config{data_paths} ) = @_;
         $config{control} = $parse_control->("$dropkg_base/$config{name}.control");
-        push @config, \%config;
+        #push @config, { %config };
+        #push @config, { %config };
+        $dropkg->{$config{name}} = \%config;
         
         open(my $fh,">",$config_file) || die "cant open $config_file";
-        print $fh encode_json \@config;
+        print $fh encode_json $dropkg;
+        #print $fh encode_json \@config;
         return \%config;
     }; 
     print "\$mode: $mode \n";
     print "\$_[1]: $_[1]\n";
     print "\$[2]: $_[2]\n";
 
-    if( $mode eq 'write' ){ print Dumper($write->("$_[1]","$_[2]")) }
+    if( $mode eq 'write' ){ print 'added to config: ' . Dumper($write->($_[1],$_[2])) }
     if( $mode eq 'find' ){ print 'find results: ' . Dumper($find->("$_[1]")) }
 };
 
@@ -216,10 +221,10 @@ my $init = sub {
         system("mkdir $dropkg_base");
     }
 
-    #unless( -f "$dropkg_base/.config.json" ){
-    #    open(my $fh,">","$dropkg_base/.config.json");
-    #    print '[{}]';
-    #}
+    unless( -f "$dropkg_base/.config.json" ){
+        open(my $fh,">","$dropkg_base/.config.json");
+        print '[{}]';
+    }
     #todo: URL should go to DATA and curl replaced with HTTP::Tiny
     unless( -d "$stash/Filesys" ){
         system("mkdir -p $stash/Filesys");
