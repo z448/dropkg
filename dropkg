@@ -55,10 +55,11 @@ my $install = sub {
     print "\ncontrol install status: "; print $control_install_status . "\n";
 
     # install to ~/.dropkg/tmp 
+    system("rm -rf $dropkg_base/tmp");
     mkpath("$dropkg_base/tmp");
     system("mv $dir/data.tar.gz $dropkg_base/tmp");
-    system("cd $dropkg_base/tmp && tar -xf $dropkg_base/tmp/data.tar.gz");
-    system("rm -r $dropkg_base/tmp/data.tar.gz");
+    system("cd $dropkg_base/tmp && tar -xvf $dropkg_base/tmp/data.tar.gz");
+    system("rm -rf $dropkg_base/tmp/data.tar.gz");
     
     # find data file paths
     my $find_data_paths = sub {
@@ -82,8 +83,8 @@ my $install = sub {
         my $data_paths_string = ' ';
         for(@$data_paths){ $data_paths_string .= $_ . ' ' }
 
-        system("cd $dropkg_base/tmp && tar -zcf $install_dir/data.tar.gz $data_paths_string && cd $install_dir && tar -xvf data.tar.gz");
-        system("rm -rf $dropkg_base/tmp");
+        system("cd $dropkg_base/tmp && tar -zcvf $install_dir/data.tar.gz $data_paths_string && cd $install_dir && tar -xvf data.tar.gz && rm -rf data.tar.gz");
+        #system("rm -rf $dropkg_base/tmp");
          
         #print $_ . "\n" for @$data_paths;
         #system("mv $dropkg_base/tmp/* $install_dir/");
@@ -109,23 +110,32 @@ my $config = sub {
         return \@config
     };
 
+    my $find = sub {
+        my $deb_name = shift;
+        my @search_result = grep { $_->{name} =~ /$_/ } @{$read->()};
+
+        return \@search_result;
+    };
+
     my $write = sub {
-        my @config = @{$read->()};
+        #my @config = @{$read->()};
+        my @config = ();
         my %config = ();
 
         ( $config{name}, $config{data_paths} ) = @_;
         $config{control} = $parse_control->("$dropkg_base/$config{name}.control");
-        push @config, { %config };
+        push @config, \%config;
         
         open(my $fh,">",$config_file) || die "cant open $config_file";
         print $fh encode_json \@config;
-        return [ %config ];
+        return \%config;
     }; 
     print "\$mode: $mode \n";
     print "\$_[1]: $_[1]\n";
     print "\$[2]: $_[2]\n";
 
     if( $mode eq 'write' ){ print @{$write->( $_[1], $_[2] )} . " files added to config" . "\n" }
+    if( $mode eq 'find' ){ print 'find results: ' . Dumper($find->("$_[1]")) }
 };
 
 #print $config->("$ENV{HOME}/.dropkg/control") and die;
@@ -158,6 +168,7 @@ my $unpack = sub {
     #system("tar -xf $dir/data.tar.gz");
     if( defined $switch->{i} ){ 
         $config->( 'write', $deb_file_name, $install->($deb_file_name) );
+        # $config->( 'find', 'libjson-pp-p5.deb' );
 #$install->($deb_file_name);
     }
     # cleanup
