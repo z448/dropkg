@@ -97,19 +97,35 @@ my $install = sub {
 
 ### config
 my $config = sub {
-    my %config = ();
-    my @config = ();
+    my $mode = $_[0];
     my $config_file = "$ENV{HOME}/.dropkg/.config.json";
 
-    open(my $fh,"<","$config_file") || die "cant open $config_file: $!";
-    my $config = <$fh>;
-    @config = decode_json $config;
-    ( $config{name}, $config{data_paths} ) = @_;
-    $config{control} = $parse_control->("$dropkg_base/$config{name}.control");
-    push @config, \%config;
-    
-    open($fh,">",$config_file) || die "cant open $config_file";
-    print $fh encode_json \@config;
+    my $read = sub {
+        my @config = ();
+        open(my $fh,"<","$config_file") || die "cant open $config_file: $!";
+
+        my $config = <$fh>;
+        @config = decode_json $config;
+        return \@config
+    };
+
+    my $write = sub {
+        my @config = @{$read->()};
+        my %config = ();
+
+        ( $config{name}, $config{data_paths} ) = @_;
+        $config{control} = $parse_control->("$dropkg_base/$config{name}.control");
+        push @config, { %config };
+        
+        open(my $fh,">",$config_file) || die "cant open $config_file";
+        print $fh encode_json \@config;
+        return [ %config ];
+    }; 
+    print "\$mode: $mode \n";
+    print "\$_[1]: $_[1]\n";
+    print "\$[2]: $_[2]\n";
+
+    if( $mode eq 'write' ){ print @{$write->( $_[1], $_[2] )} . " files added to config" . "\n" }
 };
 
 #print $config->("$ENV{HOME}/.dropkg/control") and die;
@@ -141,7 +157,7 @@ my $unpack = sub {
     system("tar -xf $dir/control.tar.gz");
     #system("tar -xf $dir/data.tar.gz");
     if( defined $switch->{i} ){ 
-        $config->( $deb_file_name, $install->($deb_file_name) );
+        $config->( 'write', $deb_file_name, $install->($deb_file_name) );
 #$install->($deb_file_name);
     }
     # cleanup
