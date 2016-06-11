@@ -56,30 +56,37 @@ my $install = sub {
 
     # install to ~/.dropkg/tmp 
     mkpath("$dropkg_base/tmp");
-    move("$dir/data.tar.gz", "$dropkg_base/tmp");
-    my $install_to_tmp = sub { system("cd $dropkg_base/tmp && tar -xf $dropkg_base/tmp/data.tar.gz") };
-    print "install to tmp status: "; print $install_to_tmp->();
+    system("mv $dir/data.tar.gz $dropkg_base/tmp");
+    system("cd $dropkg_base/tmp && tar -xf $dropkg_base/tmp/data.tar.gz");
+    system("rm -r $dropkg_base/tmp/data.tar.gz");
     
     # find data file paths
     my $find_data_paths = sub {
         my $tmp_data_paths = [];
         find( sub { push @$tmp_data_paths, "$File::Find::name" if -f }, "$dropkg_base/tmp" );
         for(@$tmp_data_paths){ s/(.*?\.dropkg\/tmp\/)(.*)/$2/ }
-        system("rm -r $dropkg_base/tmp/data.tar.gz");
         return $tmp_data_paths;
     }; 
     
     my $install_deb = sub {
-        my $data_paths = [];
-        my $tmp_data_paths = $find_data_paths->();
-        mkpath("$ENV{HOME}/tmp_local");
-        my $install_dir = $switch->{d} || "$ENV{HOME}/local";
+        #my $data_paths = [];
+        #my $tmp_data_paths = $find_data_paths->();
+        my $data_paths = $find_data_paths->();
 
-        for(@$tmp_data_paths){ push @$data_paths, "$install_dir/$_" }
+        mkpath("$ENV{HOME}/local");
+        my $install_dir = $switch->{d} || "$ENV{HOME}/local";
         print "\ninstall dir: $install_dir\n";
+
+        #for(@$tmp_data_paths){ push @$data_paths, "$install_dir/$_" }
+        my $data_paths_string = ' ';
+        for(@$data_paths){ $data_paths_string .= $_ . ' ' }
+
+        system("cd $dropkg_base/tmp && tar -zcf $install_dir/data.tar.gz $data_paths_string && cd $install_dir && tar -xvf data.tar.gz");
+        #system("cd $install_dir && tar -xvf $dropkg_base/tmp/data.tar.gz");
+         
         #print $_ . "\n" for @$data_paths;
+        #system("mv $dropkg_base/tmp/* $install_dir/");
         return $data_paths;
-        system("mv $dropkg_base/tmp/* $install_dir/");
     };  $install_deb->();
 };
 
@@ -92,11 +99,11 @@ my $config = sub {
     my $config = {};
     my $config_file = "$ENV{HOME}/.dropkg/.config.json";
 
-    open(my $fh,"<","$control_file")
+    open(my $fh,"<","$config_file");
     ( $config->{name}, $config->{data_paths} ) = @_;
     $config->{control} = $parse_control->("$dropkg_base/$config->{name}.control");
     $config = encode_json $config;
-    open( my $fh,">",$config_file) || die "cant open $config_file";
+    open($fh,">",$config_file) || die "cant open $config_file";
     print $fh $config;
 };
 
