@@ -65,6 +65,7 @@ my $install = sub {
         my $tmp_data_paths = [];
         find( sub { push @$tmp_data_paths, "$File::Find::name" if -f }, "$dropkg_base/tmp" );
         for(@$tmp_data_paths){ s/(.*?\.dropkg\/tmp\/)(.*)/$2/ }
+
         return $tmp_data_paths;
     }; 
     
@@ -82,7 +83,7 @@ my $install = sub {
         for(@$data_paths){ $data_paths_string .= $_ . ' ' }
 
         system("cd $dropkg_base/tmp && tar -zcf $install_dir/data.tar.gz $data_paths_string && cd $install_dir && tar -xvf data.tar.gz");
-        #system("cd $install_dir && tar -xvf $dropkg_base/tmp/data.tar.gz");
+        system("rm -rf $dropkg_base/tmp");
          
         #print $_ . "\n" for @$data_paths;
         #system("mv $dropkg_base/tmp/* $install_dir/");
@@ -96,15 +97,19 @@ my $install = sub {
 
 ### config
 my $config = sub {
-    my $config = {};
+    my %config = ();
+    my @config = ();
     my $config_file = "$ENV{HOME}/.dropkg/.config.json";
 
-    open(my $fh,"<","$config_file");
-    ( $config->{name}, $config->{data_paths} ) = @_;
-    $config->{control} = $parse_control->("$dropkg_base/$config->{name}.control");
-    $config = encode_json $config;
+    open(my $fh,"<","$config_file") || die "cant open $config_file: $!";
+    my $config = <$fh>;
+    @config = decode_json $config;
+    ( $config{name}, $config{data_paths} ) = @_;
+    $config{control} = $parse_control->("$dropkg_base/$config{name}.control");
+    push @config, \%config;
+    
     open($fh,">",$config_file) || die "cant open $config_file";
-    print $fh $config;
+    print $fh encode_json \@config;
 };
 
 #print $config->("$ENV{HOME}/.dropkg/control") and die;
@@ -180,10 +185,14 @@ my $init = sub {
     my $libs = [];
 
 #quick draft, needs proper handling when using -i switch for custom install to keep track of installation paths etc; kind of what dpkg does with control files/.list 
-    unless( -d "$ENV{HOME}/.dropkg" ){
-        system("mkdir $ENV{HOME}/.dropkg");
+    unless( -d "$dropkg_base" ){
+        system("mkdir $dropkg_base");
     }
 
+    #unless( -f "$dropkg_base/.config.json" ){
+    #    open(my $fh,">","$dropkg_base/.config.json");
+    #    print '[{}]';
+    #}
     #todo: URL should go to DATA and curl replaced with HTTP::Tiny
     unless( -d "$stash/Filesys" ){
         system("mkdir -p $stash/Filesys");
@@ -225,7 +234,7 @@ my $control_help = sub {
     return $control;
 };
 
-my $mode = sub {
+my $start = sub {
     my $path = shift;
     #my( $control_install ) = ();
     my $file = [];
@@ -263,9 +272,9 @@ my $mode = sub {
 };
 
 #print 'init-> ';  for( @{$init->()} ){ print $_ . '   '}; print "\n\n";
-#print 'mode-> ';  for( @{$mode->($dir)} ){ print $_ . '   '}; print "\n";
+#print 'mode-> ';  for( @{$start->($dir)} ){ print $_ . '   '}; print "\n";
 
-$mode->();
+$start->();
 
 
 __DATA__
