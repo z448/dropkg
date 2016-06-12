@@ -20,7 +20,7 @@ use open qw< :encoding(UTF-8) >;
 ##then use Version and Architecture in final string
 # 
 my $switch = {};
-getopts('ited:', $switch);
+getopts('iteu:d:', $switch);
 my $dropkg_base = "$ENV{HOME}/.dropkg";
 my $url_base = 'https://api.metacpan.org/source';
 my $control = 'control';
@@ -92,6 +92,10 @@ my $install = sub {
     };  $install_deb->();
 };
 
+my $uninstall = sub {
+    my $deb_name = shift;
+    unlink( $config->('find', $deb_name) );
+};
 
     #print $_ . "\n" for @{$find_data_paths->()};
 
@@ -256,7 +260,9 @@ my $start = sub {
     } elsif ( defined $switch->{e} ){ 
         my $control_help = $control_help->();
         print @{$control_help->{control_example}} and return;
-    } 
+    } elsif ( defined $switch->{u} ) {
+        print Dumper($uninstall->($switch->{u}) and return;
+    }
 
     print 'libs: '; print 'ok' . "\n" unless $init->(); 
 
