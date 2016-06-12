@@ -92,10 +92,6 @@ my $install = sub {
     };  $install_deb->();
 };
 
-my $uninstall = sub {
-    my $deb_name = shift;
-    unlink( $config->('find', $deb_name) );
-};
 
     #print $_ . "\n" for @{$find_data_paths->()};
 
@@ -140,6 +136,11 @@ my $config = sub {
 
     if( $mode eq 'write' ){ print 'added to config: ' . Dumper($write->($_[1],$_[2])) }
     if( $mode eq 'find' ){ print 'find results: ' . Dumper($find->("$_[1]")) }
+};
+
+my $uninstall = sub {
+    my $deb_name = shift;
+    unlink( $config->('find', $deb_name) );
 };
 
 ##todo: quick draft, needs rewrite! 
@@ -261,7 +262,7 @@ my $start = sub {
         my $control_help = $control_help->();
         print @{$control_help->{control_example}} and return;
     } elsif ( defined $switch->{u} ) {
-        print Dumper($uninstall->($switch->{u}) and return;
+        print Dumper($uninstall->($switch->{u})) and return;
     }
 
     print 'libs: '; print 'ok' . "\n" unless $init->(); 
