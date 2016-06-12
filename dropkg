@@ -112,27 +112,22 @@ my $config = sub {
 
     my $find = sub {
         my $deb_name = shift;
-        my @search_result = grep { $_->{name} =~ /$_/ } @{$read->()};
-
-        return \@search_result;
+        my $dropkg = $read->();
+        if($dropkg->{$deb_name}){
+           return $dropkg->{$deb_name}->{data_paths};
+        }
     };
 
     my $write = sub {
-        #my @config = @{$read->()};
-        #my @config = ();
         my %config = ();
         my $dropkg = $read->();
-        #my $dropkg = {};
 
         ( $config{name}, $config{data_paths} ) = @_;
         $config{control} = $parse_control->("$dropkg_base/$config{name}.control");
-        #push @config, { %config };
-        #push @config, { %config };
         $dropkg->{$config{name}} = \%config;
         
         open(my $fh,">",$config_file) || die "cant open $config_file";
         print $fh encode_json $dropkg;
-        #print $fh encode_json \@config;
         return \%config;
     }; 
     print "\$mode: $mode \n";
@@ -142,24 +137,6 @@ my $config = sub {
     if( $mode eq 'write' ){ print 'added to config: ' . Dumper($write->($_[1],$_[2])) }
     if( $mode eq 'find' ){ print 'find results: ' . Dumper($find->("$_[1]")) }
 };
-
-#print $config->("$ENV{HOME}/.dropkg/control") and die;
-
-
-
-=head1
-    # find data file paths
-    use Archive::Tar;
-    my $install_paths = Archive::Tar->new;
-    $install_paths->read("$dir/data.tar.gz");
-    for({$install_paths->list_files){
-        print $_ . "\n" if -f;
-    }
-=cut
-
-
-
-    #system("cd $ENV{HOME} && tar -xvf $ENV{HOME}/data.tar.gz");
 
 ##todo: quick draft, needs rewrite! 
 my $unpack = sub {
@@ -172,8 +149,8 @@ my $unpack = sub {
     system("tar -xf $dir/control.tar.gz");
     #system("tar -xf $dir/data.tar.gz");
     if( defined $switch->{i} ){ 
-        $config->( 'write', $deb_file_name, $install->($deb_file_name) );
-        # $config->( 'find', 'libjson-pp-p5.deb' );
+        #$config->( 'write', $deb_file_name, $install->($deb_file_name) );
+         $config->( 'find', 'libjson-pp-p5.deb' );
 #$install->($deb_file_name);
     }
     # cleanup
