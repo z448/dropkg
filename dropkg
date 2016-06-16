@@ -65,7 +65,10 @@ my $install = sub {
     my $find_data_paths = sub {
         my $tmp_data_paths = [];
         find( sub { push @$tmp_data_paths, "$File::Find::name" if -f }, "$dropkg_base/tmp" );
-        for(@$tmp_data_paths){ s/(.*?\.dropkg\/tmp\/)(.*)/$2/ }
+        for(@$tmp_data_paths){ 
+            s/(.*?\.dropkg\/tmp\/)(.*)/$2/;
+            #    $_ = $install_dir . '/' . $_;
+        }
 
         return $tmp_data_paths;
     }; 
@@ -73,10 +76,10 @@ my $install = sub {
     my $install_deb = sub {
         #my $data_paths = [];
         #my $tmp_data_paths = $find_data_paths->();
-        my $data_paths = $find_data_paths->();
 
         mkpath("$ENV{HOME}/local");
         my $install_dir = $switch->{d} || "$ENV{HOME}/local";
+        my $data_paths = $find_data_paths->();
         print "\ninstall dir: $install_dir\n";
 
         #for(@$tmp_data_paths){ push @$data_paths, "$install_dir/$_" }
@@ -135,12 +138,14 @@ my $config = sub {
     print "\$[2]: $_[2]\n";
 
     if( $mode eq 'write' ){ print 'added to config: ' . Dumper($write->($_[1],$_[2])) }
-    if( $mode eq 'find' ){ print 'find results: ' . Dumper($find->("$_[1]")) }
+    if( $mode eq 'find' ){ $find->("$_[1]") }
 };
 
 my $uninstall = sub {
     my $deb_name = shift;
-    unlink( $config->('find', $deb_name) );
+    #print Dumper($config->('find', $deb_name));
+    my @data_files = @{$config->('find', $deb_name)};
+    print @data_files;
 };
 
 ##todo: quick draft, needs rewrite! 
@@ -154,8 +159,8 @@ my $unpack = sub {
     system("tar -xf $dir/control.tar.gz");
     #system("tar -xf $dir/data.tar.gz");
     if( defined $switch->{i} ){ 
-        #$config->( 'write', $deb_file_name, $install->($deb_file_name) );
-         $config->( 'find', 'libjson-pp-p5.deb' );
+        $config->( 'write', $deb_file_name, $install->($deb_file_name) );
+        #$config->( 'find', 'libjson-pp-p5.deb' );
 #$install->($deb_file_name);
     }
     # cleanup
@@ -205,7 +210,7 @@ my $init = sub {
 
     unless( -f "$dropkg_base/.config.json" ){
         open(my $fh,">","$dropkg_base/.config.json");
-        print '[{}]';
+        print $fh '[{}]';
     }
     #todo: URL should go to DATA and curl replaced with HTTP::Tiny
     unless( -d "$stash/Filesys" ){
