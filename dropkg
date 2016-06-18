@@ -287,7 +287,7 @@ my $start = sub {
         print @{$control_help->{control_example}} and return;
     } elsif ( defined $switch->{u} ) {
         print Dumper($uninstall->($switch->{u})) and return;
-    }
+    } else {
 
     find( { wanted => sub { push @$file, $_ }}, $dir);
 
@@ -301,15 +301,12 @@ my $start = sub {
             # if we see '*.deb' here (.) -> unpacking package
             } elsif(/.*\.deb$/){
                 print "\nfound $_\n";
-# unpack needs to check if we're installing or just unpacking, if there is -i switch from user -> doing custom install and data pack needs to be unpacked into $HOME (default) directory
+# unpack needs to chec$k if we're installing or just unpacking, if there is -i switch from user -> doing custom install and data pack needs to be unpacked into $HOME (default) directory
                 print "\nunpack "; $unpack->($_);
                 system("$tree");
-            } else {
-                open(my $fh,">","control") || die "cant open control: $!";
-                my $control_help = $control_help->();
-                print $fh @{$control_help->{control_template}};
-            }
+            } 
     }
+}
 };
 
 #print 'init-> ';  for( @{$init->()} ){ print $_ . '   '}; print "\n\n";
