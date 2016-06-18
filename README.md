@@ -3,7 +3,6 @@
 UPDATE: 
 
 Sat Jun 18 06:44:09 CEST 2016
-*if there is no control file or .deb file in current directory, dropkg creates template control file*
 **-m** *option open Debian Policy Manual in browser
 **-t** *option prints control file template*
 **-e** *option print control file example with cydia specific notes*
