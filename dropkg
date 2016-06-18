@@ -20,13 +20,28 @@ use open qw< :encoding(UTF-8) >;
 ##then use Version and Architecture in final string
 # 
 my $switch = {};
-getopts('iteu:d:', $switch);
+getopts('iteu:d:m', $switch);
 my $dropkg_base = "$ENV{HOME}/.dropkg";
 my $url_base = 'https://api.metacpan.org/source';
 my $control = 'control';
 my $stash = '/tmp/dropkg';
 my $tree = "perl -I $stash /tmp/dropkg/tree .";
 my $dir = abs_path('.');
+
+
+my $control_man = sub {
+        my $arch;
+        open my $pipe, '-|', 'uname -a';
+        while(<$pipe>){
+            if(/iPhone/){
+                system("uiopen https://www.debian.org/doc/debian-policy/ch-controlfields.html#s-f-Package");
+            } elsif(/Darwin/) { 
+                system("open https://www.debian.org/doc/debian-policy/ch-controlfields.html#s-f-Package");
+            } elsif(/Ubuntu/) {
+                system("firefox https://www.debian.org/doc/debian-policy/ch-controlfields.html#s-f-Package");
+            } else { print "see Debian Policy Manual at https://www.debian.org/doc/debian-policy/ch-controlfields.html#s-f-Package\n" }
+        }
+};
 
 my $parse_control = sub {
 	my $control_file = shift;	
@@ -155,16 +170,17 @@ my $unpack = sub {
 
     system("perl -I /tmp/dropkg /tmp/dropkg/ar -x $dir/$deb_file_name 2>&1");
     #system("perl -I /tmp/dropkg /tmp/dropkg/ar -x $dir/$deb_file_name &>/dev/null");
-    print "cwd befire control untar:" .  abs_path('.');
+    #print "cwd befire control untar:" .  abs_path('.');
     system("tar -xf $dir/control.tar.gz");
-    #system("tar -xf $dir/data.tar.gz");
+    system("tar -xf $dir/data.tar.gz");
     if( defined $switch->{i} ){ 
         $config->( 'write', $deb_file_name, $install->($deb_file_name) );
         #$config->( 'find', 'libjson-pp-p5.deb' );
 #$install->($deb_file_name);
+    } else {
+        # cleanup
+        system("rm $dir/control.tar.gz $dir/debian-binary $dir/data.tar.gz $dir/$deb_file_name");
     }
-    # cleanup
-    #system("rm $dir/control.tar.gz $dir/debian-binary $dir/data.tar.gz");
 
 =head
     if( defined $switch->{i} ){ 
@@ -255,12 +271,15 @@ my $control_help = sub {
 
 my $start = sub {
     my $path = shift;
+    $init->();
     #my( $control_install ) = ();
     my $file = [];
     #print "path: $path";
 
     ### control template
-    if( defined $switch->{t} ){ 
+    if( defined $switch->{m} ){ 
+        return $control_man->();
+    } elsif ( defined $switch->{t} ){ 
         my $control_help = $control_help->();
         print @{$control_help->{control_template}} and return;
     } elsif ( defined $switch->{e} ){ 
@@ -269,8 +288,6 @@ my $start = sub {
     } elsif ( defined $switch->{u} ) {
         print Dumper($uninstall->($switch->{u})) and return;
     }
-
-    print 'libs: '; print 'ok' . "\n" unless $init->(); 
 
     find( { wanted => sub { push @$file, $_ }}, $dir);
 
@@ -286,9 +303,12 @@ my $start = sub {
                 print "\nfound $_\n";
 # unpack needs to check if we're installing or just unpacking, if there is -i switch from user -> doing custom install and data pack needs to be unpacked into $HOME (default) directory
                 print "\nunpack "; $unpack->($_);
-                #system("$tree");
-                die;
-            } 
+                system("$tree");
+            } else {
+                open(my $fh,">","control") || die "cant open control: $!";
+                my $control_help = $control_help->();
+                print $fh @{$control_help->{control_template}};
+            }
     }
 };
 
