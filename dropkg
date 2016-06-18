@@ -2,105 +2,232 @@
 # works for deb<->undeb + gets dependencies on init for control or .deb in ./
 use warnings;
 use strict;
+
+use Data::Dumper;
+use Cwd qw< abs_path >;
+use JSON::PP;
 use File::Copy;
 use File::Find;
+use File::Path;
 use Getopt::Std;
 use Term::ANSIColor;
+use open qw< :encoding(UTF-8) >;
 
 # makes debian binary package (.deb) without need of dpkg
 
 # parse control file to get Package name used as final .deb filename
 ##todo parse all fields for additional features
 ##then use Version and Architecture in final string
-
 # 
-my  $switch = {};
-getopts('i', $switch);
+my $switch = {};
+getopts('iteu:d:m', $switch);
+my $dropkg_base = "$ENV{HOME}/.dropkg";
+my $url_base = 'https://api.metacpan.org/source';
+my $control = 'control';
+my $stash = '/tmp/dropkg';
+my $tree = "perl -I $stash /tmp/dropkg/tree .";
+my $dir = abs_path('.');
 
-my $parse = sub {
-	my $c = shift;	
+
+my $control_man = sub {
+        my $arch;
+        open my $pipe, '-|', 'uname -a';
+        while(<$pipe>){
+            if(/iPhone/){
+                system("uiopen https://www.debian.org/doc/debian-policy/ch-controlfields.html#s-f-Package");
+            } elsif(/Darwin/) { 
+                system("open https://www.debian.org/doc/debian-policy/ch-controlfields.html#s-f-Package");
+            } elsif(/Ubuntu/) {
+                system("firefox https://www.debian.org/doc/debian-policy/ch-controlfields.html#s-f-Package");
+            } else { print "see Debian Policy Manual at https://www.debian.org/doc/debian-policy/ch-controlfields.html#s-f-Package\n" }
+        }
+};
+
+my $parse_control = sub {
+	my $control_file = shift;	
     my $control = {};
-	open( my $C, "<", "$c");
-	while(<$C>){
+    my @control = ();
+	open( my $fh, "<", "$control_file") || die "cant open $control_file: $!";
+	while(<$fh>){
 		if(/\:/){
             s/(.*?)(:\ )(.*)/$1$3/;
             $control->{$1} = $3;
 		}
 	}
-    if($c eq 'control'){
+    if($control_file  =~ /^control$/){
         my $file_name = $control->{Package} . '-' . $control->{Architecture} . '-' . $control->{Version};
         return $file_name;
     } else {
-        return $control;
+        push @control, $control;
+        return \@control;
     }
 };
 
+my $install = sub {
+    my $deb_file_name = shift;
+    my $control_installed_filename = $deb_file_name . '.control';
+    my $control_install_status = move("$dir/control", "$ENV{HOME}/.dropkg/$control_installed_filename");
+    print "\ncontrol install status: "; print $control_install_status . "\n";
+
+    # install to ~/.dropkg/tmp 
+    system("rm -rf $dropkg_base/tmp");
+    mkpath("$dropkg_base/tmp");
+    system("mv $dir/data.tar.gz $dropkg_base/tmp");
+    system("cd $dropkg_base/tmp && tar -xvf $dropkg_base/tmp/data.tar.gz");
+    system("rm -rf $dropkg_base/tmp/data.tar.gz");
+    
+    # find data file paths
+    my $find_data_paths = sub {
+        my $tmp_data_paths = [];
+        find( sub { push @$tmp_data_paths, "$File::Find::name" if -f }, "$dropkg_base/tmp" );
+        for(@$tmp_data_paths){ 
+            s/(.*?\.dropkg\/tmp\/)(.*)/$2/;
+            #    $_ = $install_dir . '/' . $_;
+        }
+
+        return $tmp_data_paths;
+    }; 
+    
+    my $install_deb = sub {
+        #my $data_paths = [];
+        #my $tmp_data_paths = $find_data_paths->();
+
+        mkpath("$ENV{HOME}/local");
+        my $install_dir = $switch->{d} || "$ENV{HOME}/local";
+        my $data_paths = $find_data_paths->();
+        print "\ninstall dir: $install_dir\n";
+
+        #for(@$tmp_data_paths){ push @$data_paths, "$install_dir/$_" }
+        my $data_paths_string = ' ';
+        for(@$data_paths){ $data_paths_string .= $_ . ' ' }
+
+        system("cd $dropkg_base/tmp && tar -zcvf $install_dir/data.tar.gz $data_paths_string && cd $install_dir && tar -xvf data.tar.gz && rm -rf data.tar.gz");
+        #system("rm -rf $dropkg_base/tmp");
+         
+        #print $_ . "\n" for @$data_paths;
+        #system("mv $dropkg_base/tmp/* $install_dir/");
+        return $data_paths;
+    };  $install_deb->();
+};
+
+
+    #print $_ . "\n" for @{$find_data_paths->()};
+
+
+### config
+my $config = sub {
+    my $mode = $_[0];
+    my $config_file = "$ENV{HOME}/.dropkg/.config.json";
+
+    my $read = sub {
+        #my $config = {};
+        open(my $fh,"<","$config_file") || die "cant open $config_file: $!";
+
+        my $config = <$fh>;
+        $config = decode_json $config;
+        return $config
+    };
+
+    my $find = sub {
+        my $deb_name = shift;
+        my $dropkg = $read->();
+        if($dropkg->{$deb_name}){
+           return $dropkg->{$deb_name}->{data_paths};
+        }
+    };
+
+    my $write = sub {
+        my %config = ();
+        my $dropkg = $read->();
+
+        ( $config{name}, $config{data_paths} ) = @_;
+        $config{control} = $parse_control->("$dropkg_base/$config{name}.control");
+        $dropkg->{$config{name}} = \%config;
+        
+        open(my $fh,">",$config_file) || die "cant open $config_file";
+        print $fh encode_json $dropkg;
+        return \%config;
+    }; 
+    print "\$mode: $mode \n";
+    print "\$_[1]: $_[1]\n";
+    print "\$[2]: $_[2]\n";
+
+    if( $mode eq 'write' ){ print 'added to config: ' . Dumper($write->($_[1],$_[2])) }
+    if( $mode eq 'find' ){ $find->("$_[1]") }
+};
+
+my $uninstall = sub {
+    my $deb_name = shift;
+    #print Dumper($config->('find', $deb_name));
+    my @data_files = @{$config->('find', $deb_name)};
+    print @data_files;
+};
 
 ##todo: quick draft, needs rewrite! 
 my $unpack = sub {
-    my $name = shift;
-    system("perl -I /tmp/dropkg /tmp/dropkg/ar -x ./$name &>/dev/null");
+    my $deb_file_name = shift;
+    #print "$dir/$deb_file_name" and die;
 
-    system("tar -xf control.tar.gz");
-    system("tar -xf data.tar.gz");
-    system("rm control.tar.gz debian-binary data.tar.gz");
-
-    unless( $switch->{i} ){
-        system("rm $name"); 
+    system("perl -I /tmp/dropkg /tmp/dropkg/ar -x $dir/$deb_file_name 2>&1");
+    #system("perl -I /tmp/dropkg /tmp/dropkg/ar -x $dir/$deb_file_name &>/dev/null");
+    #print "cwd befire control untar:" .  abs_path('.');
+    system("tar -xf $dir/control.tar.gz");
+    system("tar -xf $dir/data.tar.gz");
+    if( defined $switch->{i} ){ 
+        $config->( 'write', $deb_file_name, $install->($deb_file_name) );
+        #$config->( 'find', 'libjson-pp-p5.deb' );
+#$install->($deb_file_name);
     } else {
-        move( "$name", "$ENV{HOME}/.dropkg"); 
-        move( "control", "$ENV{HOME}/.dropkg");
-        system("cp -r * $ENV{HOME}");
+        # cleanup
+        system("rm $dir/control.tar.gz $dir/debian-binary $dir/data.tar.gz $dir/$deb_file_name");
     }
+
+=head
+    if( defined $switch->{i} ){ 
+        $install->($deb_file_name) and die;
+    } else {
+        move( "$dir/$deb_file_name", "$ENV{HOME}/.dropkg"); 
+        move( "$dir/control", "$ENV{HOME}/.dropkg");
+        system("cp -r $dir/* $ENV{HOME}");
+    }
+=cut
 };
 
 my $pack = sub {
     my $name = shift;
-    my @shell =();
+    my @shell = ();
 
-    while(<DATA>){
-        push @shell, $_;
-    }
+    # array ref to hold inline DATA at the tail
+    while(<DATA>){ push @shell, $_ }
     my $shell = \@shell;;
 
-    unless( $name =~/\.deb/){
-        $name .= '.deb';
-    };
-    
-    # array ref to hold inline DATA at the tail
+    # add .deb
+    unless( $name =~/\.deb/){ $name .= '.deb' };
     
     ##todo: get rid of curl, use HTTP::Tiny (CORE since 5.13.9) fallback on curl/wget if (< 5.13.9)
     my $shoot = sub {
-        my $packer = shift;
-        my $p = system("$packer");
-        system("rm -rf *");
-        $p = move('../debian.deb', "$name");
-        $p = unlink '../debian-binary', '../data.tar.gz', '../control.tar.gz', './DEBIAN/control'; 
-        $p = rmdir('DEBIAN');
+        my $packer = system(shift);
+        $packer = system("rm -rf $dir/*") unless $packer;
+        $packer = move("$dir/../debian.deb", "$name");
+        $packer = unlink "$dir/../debian-binary", "$dir/../data.tar.gz", "$dir/../control.tar.gz"; 
+        #$packer = rmdir("$dir/../DEBIAN");
     };
     $shoot->($shell->[1]);
 };
 
-
-# die if no control file in ./
-
-
-my $url_base = 'https://api.metacpan.org/source';
-my $control = 'control';
-my $stash = '/tmp/dropkg';
-my $tree = "perl -I $stash /tmp/dropkg/tree .";
-my $dir = '.';
-
-
 # get perl dependencies  on first run; tar & Filesys::Tree not necessary but tree is quite usefull for this stuff + it's not on iOS; geting tar makes it all pure-perl therefore might work on win.. 
 my $init = sub {
     my $libs = [];
-    
+
 #quick draft, needs proper handling when using -i switch for custom install to keep track of installation paths etc; kind of what dpkg does with control files/.list 
-    unless( -d "$ENV{HOME}/.dropkg" ){
-        system("mkdir $ENV{HOME}/.dropkg");
+    unless( -d "$dropkg_base" ){
+        system("mkdir $dropkg_base");
     }
 
+    unless( -f "$dropkg_base/.config.json" ){
+        open(my $fh,">","$dropkg_base/.config.json");
+        print $fh '[{}]';
+    }
     #todo: URL should go to DATA and curl replaced with HTTP::Tiny
     unless( -d "$stash/Filesys" ){
         system("mkdir -p $stash/Filesys");
@@ -112,53 +239,87 @@ my $init = sub {
         print " $stash <<<tree";
         system("curl -#kL $url_base/COG/Filesys-Tree-0.02/lib/Filesys/Tree.pm > $stash/Filesys/Tree.pm");
         system("curl -#kL $url_base/COG/Filesys-Tree-0.02/tree > $stash/tree");
-        print " $stash <<<tar";
-        system("curl -#kL $url_base/BDFOY/PerlPowerTools-1.007/bin/tar > $stash/tar");
-
-
-        print "   tree|ar|tar>>>$stash/dropkg->" . colored(['green'],"ok") . "\n\n";
-
+        print "   tree|ar>>>$stash/dropkg->" . colored(['green'],"ok") . "\n\n";
     }
     find( sub { push @$libs, $File::Find::name if (-f $_) }, $stash ); 
     return $libs;
 };
 
-my $mode = sub {
+my $control_help = sub {
+    my $shell = [];
+    my $control = {};
+    my @control_template = ();
+    my @control_example = ();
+    
+    while(<DATA>){ push @$shell, $_ }
+    {
+        $_ = $shell->[0];
+        @control_template = /\S+/g;
+    }
+    {
+        my $control_example = $shell->[3];
+        push @control_example, split(/\;/, $control_example); 
+        #@control_example = s/\;/\n/g;
+    }
+
+    for( @control_template ){ $_ = $_ . "\n" }
+    for( @control_example ){ $_ = $_ . "\n" }
+    $control->{control_template} = \@control_template;
+    $control->{control_example} = \@control_example;
+    return $control;
+};
+
+my $start = sub {
     my $path = shift;
-    my( $status ) = ();
-    my $libs = $init->();
+    $init->();
+    #my( $control_install ) = ();
     my $file = [];
+    #print "path: $path";
 
-    # if we see 'control' here (.) -> making package
-    find( sub { if(/^control$/){
-                my $deb = $ARGV[0] || $parse->($control);
-                $status = $pack->($deb);
-                print "\nstatus->" . colored(['green'],"ok") . "\n\n" unless $status;
+    ### control template
+    if( defined $switch->{m} ){ 
+        return $control_man->();
+    } elsif ( defined $switch->{t} ){ 
+        my $control_help = $control_help->();
+        print @{$control_help->{control_template}} and return;
+    } elsif ( defined $switch->{e} ){ 
+        my $control_help = $control_help->();
+        print @{$control_help->{control_example}} and return;
+    } elsif ( defined $switch->{u} ) {
+        print Dumper($uninstall->($switch->{u})) and return;
+    }
 
-    # if we see '*.deb' here (.) -> unpacking package
-            } elsif (/\.deb$/){
+    find( { wanted => sub { push @$file, $_ }}, $dir);
 
-    # unpack closure needs to check if we're installing or just unpacking, if there is -i switch from user -> doing custom install and data pack needs to be unpacked into $HOME (defaul) directory
-                $status = $unpack->($_);
-
-                # bookeeper; needs .storage (JSON, Dumper or Storable..?)
-                if( $switch->{i} ){
-                    my $tracker = $_ . '.control';
-                    $status = move('./control', "$ENV{HOME}/.dropkg/$tracker");
-                }
-                print "\nstatus->" . colored(['green'],"ok") . "\n\n" unless $status;
-            }}, $path);
-    system("$tree");
+    for(@$file){
+            # if we see 'control' here (.) -> making package
+            if( $_ eq 'control' ){
+                print "\nfound: $_\n";
+                my $deb = $ARGV[0] || $parse_control->($control);
+                print "\npack: "; print $pack->($deb);
+                system("$tree");
+            # if we see '*.deb' here (.) -> unpacking package
+            } elsif(/.*\.deb$/){
+                print "\nfound $_\n";
+# unpack needs to check if we're installing or just unpacking, if there is -i switch from user -> doing custom install and data pack needs to be unpacked into $HOME (default) directory
+                print "\nunpack "; $unpack->($_);
+                system("$tree");
+            } else {
+                open(my $fh,">","control") || die "cant open control: $!";
+                my $control_help = $control_help->();
+                print $fh @{$control_help->{control_template}};
+            }
+    }
 };
 
 #print 'init-> ';  for( @{$init->()} ){ print $_ . '   '}; print "\n\n";
-#print 'mode-> ';  for( @{$mode->($dir)} ){ print $_ . '   '}; print "\n";
+#print 'mode-> ';  for( @{$start->($dir)} ){ print $_ . '   '}; print "\n";
 
-$mode->($dir);
+$start->();
 
 
 __DATA__
-Name,Version,Author,Architecture,Package,Section,Maintainer,Homepage,Description,Depends
+Name: Version: Author: Architecture: Package: Section: Maintainer: Homepage: Description: Depends:
 rm -rf DEBIAN && mv control .control && tar czf ../data.tar.gz *;mkdir DEBIAN && cd DEBIAN && mv ../.control control && tar czf ../../control.tar.gz *;cd ../..; echo '2.0' > debian-binary && perl -I/tmp/dropkg /tmp/dropkg/ar r debian.deb debian-binary control.tar.gz data.tar.gz
 perl /tmp/dropkg/ar -x *.deb
-Name: XML-SAX   #name of whatever you are packaging  used in Cydia to search# ; Version: 0.99-1#nr before dash is tool versioon  nr after dash is your build number, increase it after each build#; Author: AuthorName; Architecture: iphoneos-arm; Package: libxml-sax-p5  #deb name will use this value in filename.deb  can be overiden on CLI -n <debname>#; Section: Perl; Maintainer: yourName (nickname) <your@email.com>; Homepage: https://some.website.com  #in Cydia shows up as as button pointing to some.website.com; Depiction: https://some.website.com #like Homepage but renders directly in Cydia package tab#; Depends: libxml-namespacesupport-p5, libxml-sax-base-p5, perl (= 5.14.4) #dependencies with optional version#; Description: Simple API for XML #short description of what you are packaging#;     This optional long description is one line after Description field prepended by whitespace  It will show up in Cydia package tab unless you add 'Depiction' field in which case Depiction value will be used instead
+Name: XML-SAX #name of whatever you are packaging  used in Cydia to search;Version: 0.99-1 #nr before dash is tool versioon  nr after dash is your build number, increase it after each build;Author: Author Name;Architecture: iphoneos-arm;Package: libxml-sax-p5 #deb name will use this value in filename.deb  can be overiden on CLI -n <debname>;Section: Perl;Maintainer: yourName (nickname) <your@email.com>;Homepage: https://some.website.com #in Cydia shows up as as link pointing to some.website.com;Depiction: https://some.website.com #like Homepage but renders directly in Cydia package tab;Depends: libxml-namespacesupport-p5, libxml-sax-base-p5, perl (>= 5.14.4) #dependencies with optional version;Description: Simple API for XML #short description of what you are packaging;_space_ This optional long description is one line after Description field prepended by whitespace. It will show up in Cydia package tab unless you add 'Depiction' field in which case Depiction value will be used instead;see debian maintenance guide for more info https://www.debian.org/doc/manuals/maint-guide/dreq.en.html#control
