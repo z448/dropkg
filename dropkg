@@ -251,11 +251,21 @@ my $control_help = sub {
     my @control_template = ();
     my @control_example = ();
     
-    while(<DATA>){ push @$shell, $_ }
-    {
-        $_ = $shell->[0];
-        @control_template = /\S+/g;
+    # if there is ~/dropkg-control use it as template, else use DATA section
+    if( ! -f "$ENV{HOME}/dropkg-control" ){
+        while(<DATA>){ push @$shell, $_ }
+        {
+            $_ = $shell->[0];
+            @control_template = /\S+/g;
+        }
+    } else {
+        open(my $fh,"<", "$ENV{HOME}/dropkg-control") || die "cant open $ENV{HOME}/dropkg-control: $!";
+        while(<$fh>){
+            chomp;
+            push @control_template, $_;
+        }
     }
+     
     {
         my $control_example = $shell->[3];
         push @control_example, split(/\;/, $control_example); 
@@ -317,6 +327,6 @@ $start->();
 
 __DATA__
 Name: Version: Author: Architecture: Package: Section: Maintainer: Homepage: Description: Depends:
-rm -rf DEBIAN && mv control .control && tar czf ../data.tar.gz *;mkdir DEBIAN && cd DEBIAN && mv ../.control control && tar czf ../../control.tar.gz *;cd ../..; echo '2.0' > debian-binary && perl -I/tmp/dropkg /tmp/dropkg/ar r debian.deb debian-binary control.tar.gz data.tar.gz
+rm -rf DEBIAN && mv control .control && if [ -f postinst ]; then mv postinst .postinst; fi; if [ -f prerm ]; then mv prerm .prerm;fi; tar czf ../data.tar.gz *;mkdir DEBIAN && cd DEBIAN && mv ../.control control; if [ -f ../.postinst ]; then mv ../.postinst postinst; fi;  if [ -f ../.prerm ]; then mv ../.prerm prerm; fi; tar czf ../../control.tar.gz *;cd ../..; echo '2.0' > debian-binary && perl -I/tmp/dropkg /tmp/dropkg/ar r debian.deb debian-binary control.tar.gz data.tar.gz
 perl /tmp/dropkg/ar -x *.deb
 Name: XML-SAX #name of whatever you are packaging  used in Cydia to search;Version: 0.99-1 #nr before dash is tool versioon  nr after dash is your build number, increase it after each build;Author: Author Name;Architecture: iphoneos-arm;Package: libxml-sax-p5 #deb name will use this value in filename.deb  can be overiden on CLI -n <debname>;Section: Perl;Maintainer: yourName (nickname) <your@email.com>;Homepage: https://some.website.com #in Cydia shows up as as link pointing to some.website.com;Depiction: https://some.website.com #like Homepage but renders directly in Cydia package tab;Depends: libxml-namespacesupport-p5, libxml-sax-base-p5, perl (>= 5.14.4) #dependencies with optional version;Description: Simple API for XML #short description of what you are packaging;_space_ This optional long description is one line after Description field prepended by whitespace. It will show up in Cydia package tab unless you add 'Depiction' field in which case Depiction value will be used instead;see debian maintenance guide for more info https://www.debian.org/doc/manuals/maint-guide/dreq.en.html#control
