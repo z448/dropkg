@@ -1,11 +1,14 @@
 #dropkg
 
 UPDATE: 
+Thu Jun 23 10:26:41 CEST 2016
+-support for optional debian files **postinst** and **prerm**; place it into directory along with you **control** file
+-to create your own custom template save it as **dropkg-control** into your $HOME directory. -t option will then use your control template instead of empty one
+-removed -e option
 
 Sat Jun 18 06:44:09 CEST 2016
-**-m** *option open Debian Policy Manual in browser
-**-t** *option prints control file template*
-**-e** *option print control file example with cydia specific notes*
+-**-m** option open Debian Policy Manual in browser
+-**-t** option prints control file template
 
 make/unmake .deb package using curl
 ```bash
