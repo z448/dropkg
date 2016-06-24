@@ -13,7 +13,12 @@ use Getopt::Std;
 use Term::ANSIColor;
 use open qw< :encoding(UTF-8) >;
 
-# makes debian binary package (.deb) without need of dpkg
+=head1 NAME
+
+dropkg - creates debian binary (.deb) packages
+
+=cut
+
 
 # parse control file to get Package name used as final .deb filename
 ##todo parse all fields for additional features
@@ -182,15 +187,6 @@ my $unpack = sub {
         system("rm $dir/control.tar.gz $dir/debian-binary $dir/data.tar.gz $dir/$deb_file_name");
     }
 
-=head
-    if( defined $switch->{i} ){ 
-        $install->($deb_file_name) and die;
-    } else {
-        move( "$dir/$deb_file_name", "$ENV{HOME}/.dropkg"); 
-        move( "$dir/control", "$ENV{HOME}/.dropkg");
-        system("cp -r $dir/* $ENV{HOME}");
-    }
-=cut
 };
 
 my $pack = sub {
@@ -314,6 +310,47 @@ my $start = sub {
 #print 'mode-> ';  for( @{$start->($dir)} ){ print $_ . '   '}; print "\n";
 
 $start->();
+
+=head1 SYNOPSIS
+
+Creates debian .deb packages, uses perl implementation of 'ar' archiver and Filesys::Tree module. Both are downloaded and set up on first run, you need to have 'curl' installed. Without any option, dropkg creates .deb package if there is control file in current directory. Name of .deb file is taked from control file, Name + Architecture + Version + .deb. If there is .deb file in current directory it will unpack contents of package into original tree. Because these two functions (pack/unpack .deb) doesnt require any options, it's possible to place it on server and using curl (or wget) pipe into perl interpreter in terminal. 
+
+Dropkg supports mandatory control file and two optional debian files: prerm and postinst
+
+Example: C<curl website.com/dropkg | perl>
+
+- this will pack everything in current directory into .deb file if there is control file in current directory
+- or if there is .deb file in current directory it'll unpack it into original tree
+
+=cut
+
+=head1 EXAMPLES
+
+=item Create .deb package:
+
+- place your files into directory along with prepared control file then C<cd directory>
+
+C<dropkg>
+
+- name of .deb file is taked from control file, Name + Architecture + Version + .deb
+
+- to have different .deb filename pass it as 1st parameter C<dropkg myapp.deb> creates myapp.deb package. 
+
+=item Unpack .deb package
+
+- go into directory that contains .deb package
+
+C<dropkg>
+
+=item Print control template
+
+C<dropkg -t>
+
+=item Open Debian Policy Manual in browser 
+
+C<dropkg -m>
+
+=cut
 
 
 __DATA__

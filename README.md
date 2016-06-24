@@ -1,71 +1,50 @@
-#dropkg
+# NAME
 
-UPDATE: 
-Thu Jun 23 10:26:41 CEST 2016
--support for optional debian files **postinst** and **prerm**; place it into directory along with you **control** file
--to create your own custom template save it as **dropkg-control** into your $HOME directory. -t option will then use your control template instead of empty one
--removed -e option
+dropkg - creates debian binary (.deb) packages
 
-Sat Jun 18 06:44:09 CEST 2016
--**-m** option open Debian Policy Manual in browser
--**-t** option prints control file template
+# SYNOPSIS
 
-make/unmake .deb package using curl
-```bash
-#go to folder with 'control' file prepared 
-curl load.sh/dropkg|perl
-```
+Creates debian .deb packages, uses perl implementation of 'ar' archiver and Filesys::Tree module. Both are downloaded and set up on first run, you need to have 'curl' installed. Without any option, dropkg creates .deb package if there is control file in current directory. Name of .deb file is taked from control file, Name + Architecture + Version + .deb. If there is .deb file in current directory it will unpack contents of package into original tree. Because these two functions (pack/unpack .deb) doesnt require any options, it's possible to place it on server and using curl (or wget) pipe into perl interpreter in terminal. 
 
-![dropkg-curl](https://raw.githubusercontent.com/z448/dropkg/master/dropkg-curl.gif)
+Dropkg supports mandatory control file and two optional debian files: prerm and postinst
 
+Example: `curl website.com/dropkg | perl`
 
-Makes debian binary package without need of dpkg. 
+\- this will pack everything in current directory into .deb file if there is control file in current directory
+\- or if there is .deb file in current directory it'll unpack it into original tree
 
-*Not a replacement of dpkg as title might suggest, it's meant to be used for packing quick custom builds which could be then installed by dpkg or just unpacked into any directory.*
+# EXAMPLES
 
-###DEPENDENCIES
-Folowing dependencies are downloaded on first run into tmp direcory
-[ar](https://metacpan.org/pod/PerlPowerTools), [Filesys::Tree](https://metacpan.org/pod/Filesys::Tree), [getopts.pl](https://metacpan.org/pod/Perl4::CoreLibs)
+- Create .deb package:
 
-It uses perl ar-chiver which is dowloaded on first run. In case you want to keep libraries just copy them from /tmp/dropkg ..*
+    \- place your files into directory along with prepared control file then `cd directory`
 
-**Basic Usage**
+    `dropkg`
 
-```shell
-dropkg
-```
+    \- name of .deb file is taked from control file, Name + Architecture + Version + .deb
 
-To create or reverse .deb package, `dropkg` doesn't need any parameter. If there is `control` file in current directory it makes `.deb` package, if there is `.deb` package it unpack it into original tree. Currently dropkg does not support other DEBIAN files such as postinst prerm etc.
+    \- to have different .deb filename pass it as 1st parameter `dropkg myapp.deb` creates myapp.deb package. 
 
-![dropkg](https://raw.githubusercontent.com/z448/dropkg/master/dropkg.gif)
+- Unpack .deb package
 
-NOTE: In case you are packaging Perl5 module, see `dpp` instead..
+    \- go into directory that contains .deb package
 
-**Install**
+    `dropkg`
 
-No installation needed, clone repo and change permissons `chmod +x dropkg`, or just copy/paste script
+- Print control template
 
-**Usage:**
+    `dropkg -t`
 
-First create `directory`, place all files + `control` file in it as you would do with `dpkg-deb`. Then run `dropkg` inside `directory`
+- Open Debian Policy Manual in browser 
 
-```bash
-dropkg <package-name>
-```
+    `dropkg -m`
 
-If run with no parameter it takes `Package-Architecture-Version` values from `control` file and uses it as `package-name.deb`
+# POD ERRORS
 
-```bash
-dropkg
-```
+Hey! **The above document had some coding errors, which are explained below:**
 
-install package w `dpkg -i` as usual
+- Around line 329:
 
-```bash
-dpkg -i <package-name>
-```
+    '=item' outside of any '=over'
 
-
-*fixed*
-
-~~*during install you might get some warnings, but package will be installed, you can ignore it for now,will be fixed..*~~
+    &#x3d;over without closing =back
