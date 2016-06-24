@@ -2,10 +2,6 @@
 
 dropkg - creates debian binary (.deb) packages
 
-# GIF
-
-![dropkg](https://raw.githubusercontent.com/z448/dropkg/master/dropkg.gif)
-
 # INSTALLATION
 
 If you are on iOS:
@@ -60,3 +56,5 @@ Print control template
 Open Debian Policy Manual in browser 
 
 `dropkg -m`
+
+To use your own control template, with prefilled values ( Architecture, Homepage etc. ) save is as 'dropkg-control' into your home directory. `dropkg -t` option will then print your control template instead of empty one

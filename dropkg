@@ -372,6 +372,10 @@ Open Debian Policy Manual in browser
 
 C<dropkg -m>
 
+To use your own control template, with prefilled values ( Architecture, Homepage etc. ) save is as 'dropkg-control' into your home directory. C<dropkg -t> option will then print your control template instead of empty one
+
+
+
 =cut
 
 
