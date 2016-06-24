@@ -2,6 +2,10 @@
 
 dropkg - creates debian binary (.deb) packages
 
+# GIF
+
+![dropkg](https://raw.githubusercontent.com/z448/dropkg/master/dropkg.gif)
+
 # INSTALLATION
 
 If you are on iOS:
