@@ -2,6 +2,24 @@
 
 dropkg - creates debian binary (.deb) packages
 
+# INSTALLATION
+
+If you are on iOS:
+
+you can use dropkg.deb in deb/ios folder and install as root with `dpkg -i dropkg.deb` or add source http://load.sh/cydia/ into Cydia and search for 'dropkg'
+
+If you are on Linux/OSX:
+
+\# Install
+
+`git clone http://github.com/z448/dropkg`
+
+`cd dropkg`
+
+\# setup
+
+`source ./env.sh`
+
 # SYNOPSIS
 
 Creates debian .deb packages, uses perl implementation of 'ar' archiver and Filesys::Tree module. Both are downloaded and set up on first run, you need to have 'curl' installed. Without any option, dropkg creates .deb package if there is control file in current directory. Name of .deb file is taked from control file, Name + Architecture + Version + .deb. If there is .deb file in current directory it will unpack contents of package into original tree. Because these two functions (pack/unpack .deb) doesnt require any options, it's possible to place it on server and using curl (or wget) pipe into perl interpreter in terminal. 
