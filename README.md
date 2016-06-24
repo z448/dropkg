@@ -15,36 +15,26 @@ Example: `curl website.com/dropkg | perl`
 
 # EXAMPLES
 
-- Create .deb package:
+Create .deb package:
 
-    \- place your files into directory along with prepared control file then `cd directory`
+\- place your files into directory along with prepared control file then `cd directory`
 
-    `dropkg`
+`dropkg`
 
-    \- name of .deb file is taked from control file, Name + Architecture + Version + .deb
+\- name of .deb file is taked from control file, Name + Architecture + Version + .deb
 
-    \- to have different .deb filename pass it as 1st parameter `dropkg myapp.deb` creates myapp.deb package. 
+\- to have different .deb filename pass it as 1st parameter `dropkg myapp.deb` creates myapp.deb package. 
 
-- Unpack .deb package
+Unpack .deb package
 
-    \- go into directory that contains .deb package
+\- go into directory that contains .deb package
 
-    `dropkg`
+`dropkg`
 
-- Print control template
+Print control template
 
-    `dropkg -t`
+`dropkg -t`
 
-- Open Debian Policy Manual in browser 
+Open Debian Policy Manual in browser 
 
-    `dropkg -m`
-
-# POD ERRORS
-
-Hey! **The above document had some coding errors, which are explained below:**
-
-- Around line 329:
-
-    '=item' outside of any '=over'
-
-    &#x3d;over without closing =back
+`dropkg -m`
