@@ -326,7 +326,8 @@ Example: C<curl website.com/dropkg | perl>
 
 =head1 EXAMPLES
 
-=item Create .deb package:
+
+Create .deb package:
 
 - place your files into directory along with prepared control file then C<cd directory>
 
@@ -336,17 +337,17 @@ C<dropkg>
 
 - to have different .deb filename pass it as 1st parameter C<dropkg myapp.deb> creates myapp.deb package. 
 
-=item Unpack .deb package
+Unpack .deb package
 
 - go into directory that contains .deb package
 
 C<dropkg>
 
-=item Print control template
+Print control template
 
 C<dropkg -t>
 
-=item Open Debian Policy Manual in browser 
+Open Debian Policy Manual in browser 
 
 C<dropkg -m>
 
