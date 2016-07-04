@@ -177,7 +177,7 @@ my $unpack = sub {
     #system("perl -I /tmp/dropkg /tmp/dropkg/ar -x $dir/$deb_file_name &>/dev/null");
     #print "cwd befire control untar:" .  abs_path('.');
     system("tar -xf $dir/control.tar.gz");
-    system("tar -xf $dir/data.tar.gz");
+    system("tar -xf $dir/data*");
     if( defined $switch->{i} ){ 
         $config->( 'write', $deb_file_name, $install->($deb_file_name) );
         #$config->( 'find', 'libjson-pp-p5.deb' );
