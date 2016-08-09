@@ -184,7 +184,7 @@ my $unpack = sub {
 #$install->($deb_file_name);
     } else {
         # cleanup
-        system("rm $dir/control.tar.gz $dir/debian-binary $dir/data.tar.gz $dir/$deb_file_name");
+        system("rm $dir/control.tar.gz $dir/debian-binary $dir/data.* $dir/$deb_file_name");
     }
 
 };
@@ -291,15 +291,17 @@ my $start = sub {
     for(@$file){
             # if we see 'control' here (.) -> making package
             if( $_ eq 'control' ){
-                print "\nfound: $_\n";
+                #print "\nfound: $_\n";
                 my $deb = $ARGV[0] || $parse_control->($control);
-                print "\npack: "; print $pack->($deb);
+                #print "\npack: "; 
+                print $pack->($deb);
                 system("$tree");
             # if we see '*.deb' here (.) -> unpacking package
             } elsif(/.*\.deb$/){
-                print "\nfound $_\n";
+                #print "\nfound $_\n";
 # unpack needs to chec$k if we're installing or just unpacking, if there is -i switch from user -> doing custom install and data pack needs to be unpacked into $HOME (default) directory
-                print "\nunpack "; $unpack->($_);
+                #print "\nunpack "; 
+                $unpack->($_);
                 system("$tree");
             } 
     }
