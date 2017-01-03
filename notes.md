@@ -1,6 +1,6 @@
 TODO
 
-**fix error when deb directory is in current path**
+**fix error on load.sh debian**
 
 ```
 ~/dpp/stash/deb/tmp pwd
@@ -18,3 +18,4 @@ rm: cannot remove ‘/home/mobile/dpp/stash/deb/tmp/debian-binary’: No such fi
 rm: cannot remove ‘/home/mobile/dpp/stash/deb/tmp/data.tar.gz’: No such file or directory
 .
 ```
+**add support for other debian files ex: md5sums..**
