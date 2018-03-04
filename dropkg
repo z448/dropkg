@@ -173,6 +173,7 @@ my $unpack = sub {
     my $deb_file_name = shift;
     #print "$dir/$deb_file_name" and die;
 
+    #system("ar -x $dir/$deb_file_name 2>&1");
     system("perl -I /tmp/dropkg /tmp/dropkg/ar -x $dir/$deb_file_name 2>&1");
     #system("perl -I /tmp/dropkg /tmp/dropkg/ar -x $dir/$deb_file_name &>/dev/null");
     #print "cwd befire control untar:" .  abs_path('.');
@@ -228,13 +229,13 @@ my $init = sub {
     unless( -d "$stash/Filesys" ){
         system("mkdir -p $stash/Filesys");
         print "\nUsing curl to get dependencies\n $stash <<<getopts.pl ";
-        system("curl -#kL $url_base/ZEFRAM/Perl4-CoreLibs-0.003/lib/getopts.pl > $stash/getopts.pl");
+        system("curl -#kL http://cpansearch.perl.org/src/ZEFRAM/Perl4-CoreLibs-0.004/lib/getopts.pl > $stash/getopts.pl");
         print " $stash <<<ar";
-        system("curl -#kL $url_base/BDFOY/PerlPowerTools-1.007/bin/ar > $stash/ar");
+        system("curl -#kL http://cpansearch.perl.org/src/BDFOY/PerlPowerTools-1.012/bin/ar > $stash/ar");
 
         print " $stash <<<tree";
-        system("curl -#kL $url_base/COG/Filesys-Tree-0.02/lib/Filesys/Tree.pm > $stash/Filesys/Tree.pm");
-        system("curl -#kL $url_base/COG/Filesys-Tree-0.02/tree > $stash/tree");
+        system("curl -#kL http://cpansearch.perl.org/src/COG/Filesys-Tree-0.02/lib/Filesys/Tree.pm > $stash/Filesys/Tree.pm");
+        system("curl -#kL http://cpansearch.perl.org/src/COG/Filesys-Tree-0.02/tree > $stash/tree");
         print "   tree|ar>>>$stash/dropkg->" . colored(['green'],"ok") . "\n\n";
     }
     find( sub { push @$libs, $File::Find::name if (-f $_) }, $stash ); 
@@ -291,17 +292,15 @@ my $start = sub {
     for(@$file){
             # if we see 'control' here (.) -> making package
             if( $_ eq 'control' ){
-                #print "\nfound: $_\n";
+                print "\nfound: $_\n";
                 my $deb = $ARGV[0] || $parse_control->($control);
-                #print "\npack: "; 
-                print $pack->($deb);
+                print "\npack: "; print $pack->($deb);
                 system("$tree");
             # if we see '*.deb' here (.) -> unpacking package
             } elsif(/.*\.deb$/){
-                #print "\nfound $_\n";
+                print "\nfound $_\n";
 # unpack needs to chec$k if we're installing or just unpacking, if there is -i switch from user -> doing custom install and data pack needs to be unpacked into $HOME (default) directory
-                #print "\nunpack "; 
-                $unpack->($_);
+                print "\nunpack "; $unpack->($_);
                 system("$tree");
             } 
     }
@@ -383,5 +382,5 @@ To use your own control template, with prefilled values ( Architecture, Homepage
 
 __DATA__
 Name: Version: Author: Architecture: Package: Section: Maintainer: Homepage: Description: Depends:
-rm -rf DEBIAN && mv control .control && if [ -f postinst ]; then mv postinst .postinst; fi; if [ -f prerm ]; then mv prerm .prerm;fi; tar czf ../data.tar.gz *;mkdir DEBIAN && cd DEBIAN && mv ../.control control; if [ -f ../.postinst ]; then mv ../.postinst postinst; fi;  if [ -f ../.prerm ]; then mv ../.prerm prerm; fi; tar czf ../../control.tar.gz *;cd ../..; echo '2.0' > debian-binary && perl -I/tmp/dropkg /tmp/dropkg/ar r debian.deb debian-binary control.tar.gz data.tar.gz
-perl /tmp/dropkg/ar -x *.deb
+rm -rf DEBIAN && mv control .control && if [ -f postinst ]; then mv postinst .postinst; fi; if [ -f prerm ]; then mv prerm .prerm;fi; tar czf ../data.tar.gz *;mkdir DEBIAN && cd DEBIAN && mv ../.control control; if [ -f ../.postinst ]; then mv ../.postinst postinst; fi;  if [ -f ../.prerm ]; then mv ../.prerm prerm; fi; tar czf ../../control.tar.gz *;cd ../..; echo '2.0' > debian-binary && perl -I /tmp/dropkg /tmp/dropkg/ar r debian.deb debian-binary control.tar.gz data.tar.gz
+perl -I /tmp/dropkg /tmp/dropkg/ar -x *.deb
