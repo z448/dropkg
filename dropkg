@@ -77,7 +77,7 @@ my $install = sub {
     # install to ~/.dropkg/tmp 
     system("rm -rf $dropkg_base/tmp");
     mkpath("$dropkg_base/tmp");
-    system("mv $dir/data.tar.gz $dropkg_base/tmp");
+    system("mv \'$dir/data.tar.gz\' $dropkg_base/tmp");
     system("cd $dropkg_base/tmp && tar -xvf $dropkg_base/tmp/data.tar.gz");
     system("rm -rf $dropkg_base/tmp/data.tar.gz");
     
@@ -174,18 +174,18 @@ my $unpack = sub {
     #print "$dir/$deb_file_name" and die;
 
     #system("ar -x $dir/$deb_file_name 2>&1");
-    system("perl -I /tmp/dropkg /tmp/dropkg/ar -x $dir/$deb_file_name 2>&1");
+    system("perl -I /tmp/dropkg /tmp/dropkg/ar -x \'$dir/$deb_file_name\' 2>&1");
     #system("perl -I /tmp/dropkg /tmp/dropkg/ar -x $dir/$deb_file_name &>/dev/null");
     #print "cwd befire control untar:" .  abs_path('.');
-    system("tar -xf $dir/control.tar.gz");
-    system("tar -xf $dir/data*");
+    system("tar -xf \'$dir/control.tar.gz\'");
+    system("tar -xf \"$dir/data\"*");
     if( defined $switch->{i} ){ 
         $config->( 'write', $deb_file_name, $install->($deb_file_name) );
         #$config->( 'find', 'libjson-pp-p5.deb' );
 #$install->($deb_file_name);
     } else {
         # cleanup
-        system("rm $dir/control.tar.gz $dir/debian-binary $dir/data.* $dir/$deb_file_name");
+        system("rm \'$dir/control.tar.gz\' \'$dir/debian-binary\' \"$dir/data.\"* \'$dir/$deb_file_name\'");
     }
 
 };
@@ -204,7 +204,7 @@ my $pack = sub {
     ##todo: get rid of curl, use HTTP::Tiny (CORE since 5.13.9) fallback on curl/wget if (< 5.13.9)
     my $shoot = sub {
         my $packer = system(shift);
-        $packer = system("rm -rf $dir/*") unless $packer;
+        $packer = system("rm -rf \"$dir/\"*") unless $packer;
         $packer = move("$dir/../debian.deb", "$name");
         $packer = unlink "$dir/../debian-binary", "$dir/../data.tar.gz", "$dir/../control.tar.gz"; 
         #$packer = rmdir("$dir/../DEBIAN");
