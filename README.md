@@ -44,4 +44,4 @@ To have different .deb filename pass it as 1st parameter "dropkg myprg.deb".
 
 To unpack .deb package:
 
-Go into directory that contains .deb package and run C<dropkg> without any option.
+Go into directory that contains .deb package and run "dropkg" without any option.
