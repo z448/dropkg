@@ -1,6 +1,6 @@
 # NAME
 
-dropkg - creates debian binary (.deb) packages
+dropkg - creates debian binary packages
 
 # GIF
 
@@ -8,57 +8,40 @@ dropkg - creates debian binary (.deb) packages
 
 # INSTALLATION
 
-If you are on iOS:
-
-you can use dropkg.deb in deb/ios folder and install as root with `dpkg -i dropkg.deb` or add source http://load.sh/cydia/ into Cydia and search for 'dropkg'
-
-If you are on Linux/OSX:
-
-\# Install
-
-`git clone http://github.com/z448/dropkg`
-
-`cd dropkg`
-
-\# setup
-
-`source ./env.sh`
+```bash
+git clone http://github.com/z448/dropkg
+cd dropkg/deb
+sudo dpkg -i dropkg_1.8_all.deb
+```
 
 # SYNOPSIS
 
-Creates debian .deb packages, uses perl implementation of 'ar' archiver and Filesys::Tree module. Both are downloaded and set up on first run, you need to have 'curl' installed. Without any option, dropkg creates .deb package if there is control file in current directory. Name of .deb file is taked from control file, Name + Architecture + Version + .deb. If there is .deb file in current directory it will unpack contents of package into original tree. Because these two functions (pack/unpack .deb) doesnt require any options, it's possible to place it on server and using curl (or wget) pipe into perl interpreter in terminal. 
-
-Dropkg supports mandatory control file and two optional debian files: prerm and postinst
-
-Example: `curl website.com/dropkg | perl`
-
-\- this will pack everything in current directory into .deb file if there is control file in current directory
-\- or if there is .deb file in current directory it'll unpack it into original tree
+Creates debian bianry package with contents of current directory if there is control file in it. If there is debian package in current directory dropkg will unkack it into current directory.
+dropkg supports mandatory control file and two optional debian files: prerm and postinst
 
 # EXAMPLES
 
-Create .deb package:
+To create .deb package:
 
-\- place your files into directory along with prepared control file then `cd directory`
+You want to create .deb package that will install your program 'myprg' into '/usr/bin' directory. Create empty directory of any name (think of it as root '/' directory) then create 'usr/bin' path in that directory and move your program into that path.
 
-`dropkg`
+```bash
+mkdir MyTmp
+mkdir -p MyTmp/usr/bin
+mv myprg MyTmp/usr/bin
+cd MyTmp
+```
 
-\- name of .deb file is taked from control file, Name + Architecture + Version + .deb
+Place 'control' file into 'MyTmp' directory. "dropkg -t" can print you template of control file.
 
-\- to have different .deb filename pass it as 1st parameter `dropkg myapp.deb` creates myapp.deb package. 
+```bash
+dropkg
+```
 
-Unpack .deb package
+Name of .deb file is taked from control file, Name + Version + Architecture + .deb.
+To have different .deb filename pass it as 1st parameter "dropkg myprg.deb". 
 
-\- go into directory that contains .deb package
 
-`dropkg`
+To unpack .deb package:
 
-Print control template
-
-`dropkg -t`
-
-Open Debian Policy Manual in browser 
-
-`dropkg -m`
-
-To use your own control template, with prefilled values ( Architecture, Homepage etc. ) save is as 'dropkg-control' into your home directory. `dropkg -t` option will then print your control template instead of empty one
+Go into directory that contains .deb package and run C<dropkg> without any option.
