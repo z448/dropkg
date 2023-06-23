@@ -244,7 +244,19 @@ sub packdir{
         unless( /^\.$|^\.control$|^\.postinst$|^\.prerm$/ ) { push @pack_content, "$File::Find::dir/$_" }
     } }, ('.');
 
-    system("tar -czf ../data.tar.gz @pack_content");
+    my $tar_type = '';
+    open my $tar_type_ph, '-|', 'tar --version';
+    while(<$tar_type_ph>){
+	    if(/GNU/){ $tar_type = 'GNU' }
+	    if(/bsd/){ $tar_type = 'bsd' }
+    }
+    close $tar_type_ph;
+    
+    if( $tar_type eq 'GNU' ){
+    	system("tar --hard-dereference -czf ../data.tar.gz @pack_content");
+    } elsif( $tar_type eq 'bsd' ){
+	system("tar -czf ../data.tar.gz @pack_content");
+    } else { die "unrecognized tar type\n" }
     #<---------
     make_path('DEBIAN');
 
