@@ -234,37 +234,51 @@ sub packdir{
 
     remove_tree('DEBIAN');
 
-    copy('./control', './.control') and unlink 'control';
-    if( -f './postinst' ){ copy('./postinst', './.postinst') and unlink './postinst' }
-    if( -f './prerm' ){ copy('./prerm', './.prerm' ) and unlink './prerm' }
+    #copy('./control', './.control') and unlink 'control';
+    #if( -f './postinst' ){ copy('./postinst', './.postinst') and unlink './postinst' }
+    #if( -f './prerm' ){ copy('./prerm', './.prerm' ) and unlink './prerm' }
 
     #<---------
-    my @pack_content = ();
-    find{ untaint => 1, wanted => sub { 
-        unless( /^\.$|^\.control$|^\.postinst$|^\.prerm$/ ) { push @pack_content, "$File::Find::dir/$_" }
-    } }, ('.');
+    #my @pack_content = ();
+    opendir(my $dh, '.') || die "Can't opendir '.': $!";
+    my @pack_content = grep{ $_ !~ /^(\.|control|prerm|postinst|\.\.)$/ } readdir($dh);
+    closedir $dh;
+
+    #find{ untaint => 1, wanted => sub { 
+    #    unless( /^\.$|^\.control$|^\.postinst$|^\.prerm$/ ) { push @pack_content, "$File::Find::dir/$_" }
+    #} }, ('.');
+
+#    print "$_\n" for @pack_content; die
 
     my $tar_type = '';
     open my $tar_type_ph, '-|', 'tar --version';
     while(<$tar_type_ph>){
-	    if(/GNU/){ $tar_type = 'GNU' }
-	    if(/bsd/){ $tar_type = 'bsd' }
+	    if(/GNU/){ $tar_type = 'gnu' }
+	    if(/bsdtar/){ $tar_type = 'bsd' }
     }
     close $tar_type_ph;
     
-    if( $tar_type eq 'GNU' ){
-    	system("tar --hard-dereference -czf ../data.tar.gz @pack_content");
+    my $has_lzma = 0;
+    open my $lzmaph, '-|', 'which', 'lzma';
+    while(<lzmaph>){
+        if(/\/lzma$/){ $has_lzma = 1 }
+    }
+
+
+    if( $tar_type eq 'gnu' ){
+    	system("tar --hard-dereference -cf - @pack_content | lzma -9 -c - > ../data.tar.lzma");
+        #system("tar --hard-dereference -czf ../data.tar.gz @pack_content");
     } elsif( $tar_type eq 'bsd' ){
-	system("tar -czf ../data.tar.gz @pack_content");
+        system("tar -czf ../data.tar.gz @pack_content");
     } else { die "unrecognized tar type\n" }
     #<---------
     make_path('DEBIAN');
 
     chdir 'DEBIAN';
     
-    copy('../.control', 'control') and unlink '../.control';
-    if( -f '../.postinst'){ copy('../.postinst', 'postinst') and unlink '../.postinst' }
-    if( -f '../.prerm'){ copy('../.prerm', 'prerm') and unlink '../.prerm' }
+    copy('../control', 'control') and unlink '../control';
+    if( -f '../postinst'){ copy('../postinst', 'postinst') and unlink '../postinst' }
+    if( -f '../prerm'){ copy('../prerm', 'prerm') and unlink '../prerm' }
 
     my $control = Archive::Tar->new;
     $control->add_files( <*> );
@@ -299,12 +313,13 @@ sub packdir{
     copy("../$debname", '.');
     unlink "../$debname";
 
-    if( $dropkg{animation} == 1 ){
-        dropkg();
-    } else { 
+    #if( $dropkg{animation} == 1 ){
+    #    dropkg();
+    #} else { 
         open my $lsp, '-|', 'ls';
         while(<$lsp>){ print }
-    }
+        close $lsp;
+        #}
 }
 
 sub unpackdeb {
