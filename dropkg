@@ -20,8 +20,8 @@ getopts('tvmh', \%opt);
 
 
 sub os{
-    open my $os, '-|', 'uname -a';
-    while(<$os>){
+    open my $osph, '-|', 'uname -a';
+    while(<$osph>){
         if( /iPhone|iPad/ && /arm64/ ){ return 'iphoneos-arm64' }
         if( /iPhone|iPad/ ){ return 'iphoneos-arm' }
         if( /Darwin/ ){ return 'osx' }
@@ -52,22 +52,31 @@ sub conf{
 }
 
 
-sub deps{
-    my $ar;
-    my $tree;
+sub dep{
+    my $dep = shift || 0;
+    my %dep = ( ar => 0, tree => 0, tar => 0 );
 
-    open( my $deps, "-|", 'which', 'ar', 'tree' );
-    while(<$deps>){
+
+    open( my $depph, "-|", 'which', $dep );
+    while(<$depph>){
         chomp;
-        if( /\/ar$/ ){ $ar = 1 }
-        if( /\/tree$/ ){ $tree = 1 }
+        if( /\/$dep$/ ){
+            $dep{$dep} = 1;
+            if( $dep eq 'tar' ){
+                open( my $tarph, '-|', 'tar', '--version' );
+                while(<$tarph>){
+	                if(/GNU/){ $dep{$dep} = 'gnu' }
+	                if(/bsdtar/){ $dep{$dep} = 'bsd' }
+                }
+                close $tarph;
+            }
+        }
     }
-
-    unless( $ar ){ print "'ar' dependency is missing. Please use cpan to install it 'cpan PerlPowerTools'.\n" and exit }
-    unless( $tree ){ print "'tree' dependency is missing. Please use cpan to install it 'cpan Filesys::Tree'.\n" and exit }
+    return $dep{$dep};
 }
 
-
+unless( dep('ar') ){ print "'ar' dependency is missing. Please use cpan to install it 'cpan PerlPowerTools'.\n" and exit }
+unless( dep('tree') ){ print "'tree' dependency is missing. Please use cpan to install it 'cpan Filesys::Tree'.\n" and exit }
 
 my %control;
 if( -f "$ENV{HOME}/dropkg_control" ){
@@ -92,7 +101,6 @@ if( -f "$ENV{HOME}/dropkg_control" ){
                         Maintainer  => '(mandatory)',
                         Description => '(mandatory)',
                         Homepage    => '(optional)',
-                        'Built-Using' => 'dropkg'
             );
 }
 
@@ -102,7 +110,7 @@ sub start{
 
     opendir( my $dh, '.' );
     for( readdir $dh ){
-        if( /^control$/ ){
+	if( /^control$/ ){
             $seen{control}++;
         }
 
@@ -151,7 +159,7 @@ sub start{
             exit;
         }
 
-        $control_file{'Installed-Size'} = installed_size();
+	#$control_file{'Installed-Size'} = installed_size();
     
         if( defined $opt{t} ){
             for( keys %control ){
@@ -205,10 +213,6 @@ sub dropkg{
     $ENV{PS1} = $ps1;
 }
 
-sub tree{
-    print "tree\n";
-}
-
 sub installed_size{
     my $size = 0;
     find{ untaint => 1, wanted => sub { $size += -s } }, ('.');
@@ -234,44 +238,24 @@ sub packdir{
 
     remove_tree('DEBIAN');
 
-    #copy('./control', './.control') and unlink 'control';
-    #if( -f './postinst' ){ copy('./postinst', './.postinst') and unlink './postinst' }
-    #if( -f './prerm' ){ copy('./prerm', './.prerm' ) and unlink './prerm' }
-
-    #<---------
-    #my @pack_content = ();
     opendir(my $dh, '.') || die "Can't opendir '.': $!";
     my @pack_content = grep{ $_ !~ /^(\.|control|prerm|postinst|\.\.)$/ } readdir($dh);
     closedir $dh;
 
+    #my @pack_content = ();
     #find{ untaint => 1, wanted => sub { 
-    #    unless( /^\.$|^\.control$|^\.postinst$|^\.prerm$/ ) { push @pack_content, "$File::Find::dir/$_" }
+    #    unless( /^\.$|^\.\.$|^control$|^postinst$|^prerm$/ ) { push @pack_content, "$File::Find::dir/$_" }
     #} }, ('.');
 
-#    print "$_\n" for @pack_content; die
+    #print "$_\n" for @pack_content; die
 
-    my $tar_type = '';
-    open my $tar_type_ph, '-|', 'tar --version';
-    while(<$tar_type_ph>){
-	    if(/GNU/){ $tar_type = 'gnu' }
-	    if(/bsdtar/){ $tar_type = 'bsd' }
-    }
-    close $tar_type_ph;
-    
-    my $has_lzma = 0;
-    open my $lzmaph, '-|', 'which', 'lzma';
-    while(<lzmaph>){
-        if(/\/lzma$/){ $has_lzma = 1 }
-    }
-
-
-    if( $tar_type eq 'gnu' ){
-    	system("tar --hard-dereference -cf - @pack_content | lzma -9 -c - > ../data.tar.lzma");
-        #system("tar --hard-dereference -czf ../data.tar.gz @pack_content");
-    } elsif( $tar_type eq 'bsd' ){
-        system("tar -czf ../data.tar.gz @pack_content");
+    my $tar = dep('tar');
+    if( $tar eq 'gnu' ){
+	    system("tar --hard-dereference -czf ../data.tar.gz @pack_content");
+    } elsif( $tar eq 'bsd' ){
+	    system("tar -czf ../data.tar.gz @pack_content");
     } else { die "unrecognized tar type\n" }
-    #<---------
+
     make_path('DEBIAN');
 
     chdir 'DEBIAN';
@@ -297,18 +281,20 @@ sub packdir{
     my $cwd = getcwd();
     chdir '..';
     
+    opendir(my $dh2, '.') || die "Can't opendir '.': $!";    
+    my @file = grep{ /^(debian-binary|control\.tar\.gz|data\.tar\.gz)/ } readdir($dh2);
+    closedir $dh2;
+
     open SAVEERR, ">& STDERR";
     open STDERR, '>', undef;;
     select STDERR; $| = 1;
-        
-    my @file = ( 'debian-binary', 'control.tar.gz', 'data.tar.gz' );
-    open my $arr, '-|', "ar -r $debname @file";
-    while(<$arr>){ print }
+    
+    system("ar -r $debname @file");
 
     close STDERR;
     open STDERR, ">&SAVEERR";
             
-    unlink('debian-binary', 'control.tar.gz', 'data.tar.gz' );
+    unlink( @file );
     chdir $cwd;
     copy("../$debname", '.');
     unlink "../$debname";
@@ -334,8 +320,8 @@ sub unpackdeb {
     unlink 'control.tar.gz';
 
     my $data = Archive::Tar->new;
-    $data->read('data.tar.gz') and $data->extract();
-    unlink 'data.tar.gz';
+    $data->read( 'data.tar.gz' ) and $data->extract();
+    unlink( 'data.tar.gz' );
     
     open my $tree, '-|', 'tree';
     while(<$tree>){ print }
@@ -361,7 +347,7 @@ if( $opt{t} ){
     print "$VERSION\n";
 } else {
     conf();
-    deps();
+    dep();
     start();
 }
 
