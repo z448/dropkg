@@ -237,14 +237,14 @@ sub packdir{
 
     remove_tree('DEBIAN');
 
-    opendir(my $dh, '.') || die "Can't opendir '.': $!";
-    my @pack_content = grep{ $_ !~ /^(\.|control|prerm|postinst|\.\.)$/ } readdir($dh);
-    closedir $dh;
+    #opendir(my $dh, '.') || die "Can't opendir '.': $!";
+    #my @pack_content = grep{ $_ !~ /^(\.|control|prerm|postinst|\.\.)$/ } readdir($dh);
+    #closedir $dh;
 
-    #my @pack_content = ();
-    #find{ untaint => 1, wanted => sub { 
-    #    unless( /^\.$|^\.\.$|^control$|^postinst$|^prerm$/ ) { push @pack_content, "$File::Find::dir/$_" }
-    #} }, ('.');
+    my @pack_content = ();
+    find{ untaint => 1, wanted => sub { 
+        unless( /^\.$|^\.\.$|^control$|^postinst$|^prerm$/ ) { push @pack_content, "$File::Find::dir/$_" }
+    } }, ('.');
 
     my $data = Archive::Tar->new;
     $data->add_files( @pack_content );
