@@ -235,7 +235,6 @@ sub packdir{
     if( $ENV{PWD} eq $ENV{HOME} ){ print "You are in your home directory, create new directory and place your files in it\n" and die }
     if( $ENV{PWD} eq '/' ){ print "You are in root directory, create new directory and place your files in it\n" and die }
 
-
     remove_tree('DEBIAN');
 
     opendir(my $dh, '.') || die "Can't opendir '.': $!";
@@ -247,14 +246,9 @@ sub packdir{
     #    unless( /^\.$|^\.\.$|^control$|^postinst$|^prerm$/ ) { push @pack_content, "$File::Find::dir/$_" }
     #} }, ('.');
 
-    #print "$_\n" for @pack_content; die
-
-    my $tar = dep('tar');
-    if( $tar eq 'gnu' ){
-	    system("tar --hard-dereference -czf ../data.tar.gz @pack_content");
-    } elsif( $tar eq 'bsd' ){
-	    system("tar -czf ../data.tar.gz @pack_content");
-    } else { die "unrecognized tar type\n" }
+    my $data = Archive::Tar->new;
+    $data->add_files( @pack_content );
+    $data->write('../data.tar.gz', COMPRESS_GZIP);
 
     make_path('DEBIAN');
 
@@ -280,21 +274,16 @@ sub packdir{
     
     my $cwd = getcwd();
     chdir '..';
-    
-    opendir(my $dh2, '.') || die "Can't opendir '.': $!";    
-    my @file = grep{ /^(debian-binary|control\.tar\.gz|data\.tar\.gz)/ } readdir($dh2);
-    closedir $dh2;
 
     open SAVEERR, ">& STDERR";
     open STDERR, '>', undef;;
     select STDERR; $| = 1;
     
-    system("ar -r $debname @file");
+    system("ar -r $debname debian-binary control.tar.gz data.tar.gz");
 
     close STDERR;
     open STDERR, ">&SAVEERR";
             
-    unlink( @file );
     chdir $cwd;
     copy("../$debname", '.');
     unlink "../$debname";
