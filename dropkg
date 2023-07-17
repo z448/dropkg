@@ -11,7 +11,7 @@ use Cwd;
 use Time::HiRes qw( usleep );
 use autodie;
 
-our $VERSION = "v1.8";
+our $VERSION = "v1.9";
 
 delete @ENV{ qw( IFS CDPATH ENV BASH_ENV ) };
 
@@ -159,7 +159,7 @@ sub start{
             exit;
         }
 
-	#$control_file{'Installed-Size'} = installed_size();
+	$control_file{'Installed-Size'} = installed_size();
     
         if( defined $opt{t} ){
             for( keys %control ){
@@ -195,28 +195,25 @@ sub dropkg{
         $usleep = $usleep - 8000;
         if( $usleep < 8000 ){ $usleep = 8000 }
 
-        #if( $_ == 1 ){ print "d\n" }
-        #elsif( $_ == 2 ){ print "r\n" }
-        #elsif( $_ == 4 ){ print "o\n" }
-        #elsif( $_ == 7 ){ print "p\n" }
-        #elsif( $_ == 11 ){ print "k\n" }
-        #elsif( $_ == 16 ){ print "g\n" }
-        #else { print "\n" }
-        print "\n";
+        if( $_ == 1 ){ print "d\n" }
+        elsif( $_ == 2 ){ print "r\n" }
+        elsif( $_ == 4 ){ print "o\n" }
+        elsif( $_ == 7 ){ print "p\n" }
+        elsif( $_ == 11 ){ print "k\n" }
+        elsif( $_ == 16 ){ print "g\n" }
+        else { print "\n" }
+	#print "\n";
 
         usleep( $usleep );
     }
-
-    open my $lsp, '-|', 'ls';
-    while(<$lsp>){ print }
 
     $ENV{PS1} = $ps1;
 }
 
 sub installed_size{
     my $size = 0;
-    find{ untaint => 1, wanted => sub { $size += -s } }, ('.');
-    return $size;
+    find{ untaint => 1, wanted => sub { if( -f $_){ $size += -s } } }, ('.');
+    $size;
 }
 
 sub debname{
@@ -230,24 +227,21 @@ sub debname{
     my $debname = $ARGV[0] ? $ARGV[0] : "$control_file{Name}_$control_file{Version}_$control_file{Architecture}.deb";
 }
 
+
 sub packdir{
     my $debname = shift;
-    if( $ENV{PWD} eq $ENV{HOME} ){ print "You are in your home directory, create new directory and place your files in it\n" and die }
-    if( $ENV{PWD} eq '/' ){ print "You are in root directory, create new directory and place your files in it\n" and die }
+    if( $ENV{PWD} eq $ENV{HOME} ){ print "You are in your home directory, create new directory and place your files in it\n" and exit }
+    if( $ENV{PWD} eq '/' ){ print "You are in root directory, create new directory and place your files in it\n" and exit }
 
     remove_tree('DEBIAN');
 
-    #opendir(my $dh, '.') || die "Can't opendir '.': $!";
-    #my @pack_content = grep{ $_ !~ /^(\.|control|prerm|postinst|\.\.)$/ } readdir($dh);
-    #closedir $dh;
-
-    my @pack_content = ();
+    my @data = ();
     find{ untaint => 1, wanted => sub { 
-        unless( /^\.$|^\.\.$|^control$|^postinst$|^prerm$/ ) { push @pack_content, "$File::Find::dir/$_" }
+        unless( /^\.$|^\.\.$|^control$|^postinst$|^prerm$/ ) { push @data, "$File::Find::dir/$_" }
     } }, ('.');
 
     my $data = Archive::Tar->new;
-    $data->add_files( @pack_content );
+    $data->add_files( @data );
     $data->write('../data.tar.gz', COMPRESS_GZIP);
 
     make_path('DEBIAN');
@@ -285,16 +279,12 @@ sub packdir{
     open STDERR, ">&SAVEERR";
             
     chdir $cwd;
-    copy("../$debname", '.');
-    unlink "../$debname";
+    copy("../$debname", '.') and unlink ( "../$debname", '../debian-binary', '../control.tar.gz', '../data.tar.gz' );
 
-    #if( $dropkg{animation} == 1 ){
-    #    dropkg();
-    #} else { 
-        open my $lsp, '-|', 'ls';
-        while(<$lsp>){ print }
-        close $lsp;
-        #}
+    dropkg() if( $dropkg{animation} == 1 );
+    open my $lsp, '-|', 'ls';
+    while(<$lsp>){ print }
+    close $lsp;
 }
 
 sub unpackdeb {
@@ -395,7 +385,7 @@ To have different .deb filename pass it as 1st parameter C<dropkg myprg.deb>.
 
 =item To unpack .deb package:
 
-Go into directory that contains .deb package and run C<dropkg> without any option.
+Go into directory that contains .deb package and run C<dropkg> without any option. If there is more than one .deb file in current directory pass file name as first argument C<dropkg file.deb>.
 
 =back
 
@@ -409,7 +399,7 @@ Zdeněk Bohuněk, C<< <4zdenek@gmail.com> >>
 
 =head1 COPYRIGHT
 
-Copyright © 2016-2023, Zdeněk Bohuněk C<< <4zdenek@gmail.com> >>. All rights reserved. 
+Copyright © 2016-2023, Zdeněk Bohuněk C<< <4zdenek@gmail.com> >>. All rights reserved.
 
 This code is available under the Artistic License 2.0.
 
