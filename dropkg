@@ -11,23 +11,13 @@ use Cwd;
 use Time::HiRes qw( usleep );
 use autodie;
 
-our $VERSION = "v1.9";
+our $VERSION = "v1.9.3";
 
 delete @ENV{ qw( IFS CDPATH ENV BASH_ENV ) };
 
 my %opt;
 getopts('tvmh', \%opt);
 
-
-sub os{
-    open my $osph, '-|', 'uname -a';
-    while(<$osph>){
-        if( /iPhone|iPad/ && /arm64/ ){ return 'iphoneos-arm64' }
-        if( /iPhone|iPad/ ){ return 'iphoneos-arm' }
-        if( /Darwin/ ){ return 'osx' }
-        if( /Ubuntu/ ){ return 'ubuntu' }
-    }
-}
 
 sub debian_manual{
         open my $openph, '-|', 'which', 'open';
@@ -195,14 +185,14 @@ sub dropkg{
         $usleep = $usleep - 8000;
         if( $usleep < 8000 ){ $usleep = 8000 }
 
-        if( $_ == 1 ){ print "d\n" }
-        elsif( $_ == 2 ){ print "r\n" }
-        elsif( $_ == 4 ){ print "o\n" }
-        elsif( $_ == 7 ){ print "p\n" }
-        elsif( $_ == 11 ){ print "k\n" }
-        elsif( $_ == 16 ){ print "g\n" }
-        else { print "\n" }
-	#print "\n";
+        #if( $_ == 1 ){ print "d\n" }
+        #elsif( $_ == 2 ){ print "r\n" }
+        #elsif( $_ == 4 ){ print "o\n" }
+        #elsif( $_ == 7 ){ print "p\n" }
+        #elsif( $_ == 11 ){ print "k\n" }
+        #elsif( $_ == 16 ){ print "g\n" }
+        #else { print "\n" }
+	    print "\n";
 
         usleep( $usleep );
     }
