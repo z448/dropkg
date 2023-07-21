@@ -11,7 +11,7 @@ dropkg - creates debian binary packages
 ```bash
 git clone http://github.com/z448/dropkg
 cd dropkg/deb
-sudo dpkg -i dropkg_1.9.3-2_all.deb
+sudo dpkg -i ./dropkg_1.9.3-3_all.deb
 ```
 
 # SYNOPSIS
