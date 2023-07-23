@@ -2,6 +2,10 @@
 
 dropkg - creates debian binary packages
 
+# VERSION
+
+This document describes dropkg version 1.9.3
+
 # GIF
 
 ![dropkg](https://raw.githubusercontent.com/z448/dropkg/master/dropkg.gif)
@@ -13,35 +17,52 @@ git clone http://github.com/z448/dropkg
 cd dropkg/deb
 sudo dpkg -i ./dropkg_1.9.3-4_all.deb
 ```
-
 # SYNOPSIS
 
+- Without any option dropkg creates debian bianry package with contents of current directory if there is control file in it. If there is debian package in current directory dropkg will unkack it into current directory.
+- `-v` show version
+- `-t` show control file template  
+- `-m` show debian policy manual 
+
+# DESCRIPTION
+
 Creates debian bianry package with contents of current directory if there is control file in it. If there is debian package in current directory dropkg will unkack it into current directory.
-dropkg supports mandatory control file and two optional debian files: prerm and postinst
 
 # EXAMPLES
 
-To create .deb package:
+- To create .deb package:
 
-You want to create .deb package that will install your program 'myprg' into '/usr/bin' directory. Create empty directory of any name (think of it as root '/' directory) then create 'usr/bin' path in that directory and move your program into that path.
+    You want to create .deb package that will install your program 'myprg' into '/usr/bin' directory. Create empty directory of any name (think of it as root '/' directory) then create 'usr/bin' path in that directory and move your program into that path.
 
-```bash
-mkdir MyTmp
-mkdir -p MyTmp/usr/bin
-mv myprg MyTmp/usr/bin
-cd MyTmp
-```
+    `mkdir MyTmp`
 
-Place 'control' file into 'MyTmp' directory. "dropkg -t" can print you template of control file.
+    `mkdir -p MyTmp/usr/bin`
 
-```bash
-dropkg
-```
+    `mv myprg MyTmp/usr/bin`
 
-Name of .deb file is taked from control file, Name + Version + Architecture + .deb.
-To have different .deb filename pass it as 1st parameter "dropkg myprg.deb". 
+    `cd MyTmp`
 
+    Place 'control' file into 'MyTmp' directory. `dropkg -t` can print you template of control file.
 
-To unpack .deb package:
+    `dropkg`
 
-Go into directory that contains .deb package and run "dropkg" without any option.
+    Name of .deb file is taked from control file, Name + Version + Architecture + .deb.
+    To have different .deb filename pass it as 1st parameter `dropkg myprg.deb`. 
+
+- To unpack .deb package:
+
+    Go into directory that contains .deb package and run `dropkg` without any option. If there is more than one .deb file in current directory pass file name as first argument `dropkg file.deb`.
+
+# DEVELOPMENT
+
+dropkg is hosted on [github](https://github.com/z448/dropkg). You can track and contribute to its development there.
+
+# AUTHOR
+
+Zdeněk Bohuněk, `<4zdenek@gmail.com>`
+
+# COPYRIGHT
+
+Copyright © 2016-2023, Zdeněk Bohuněk `<4zdenek@gmail.com>`. All rights reserved.
+
+This code is available under the Artistic License 2.0.
