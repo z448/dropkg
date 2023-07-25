@@ -44,7 +44,7 @@ sub conf{
 
 sub dep{
     my $dep = shift || 0;
-    my %dep = ( ar => 0, tree => 0, tar => 0 );
+    my %dep = ( ar => 0, tree => 0, tar => 0, xz => 0 );
 
 
     open( my $depph, "-|", 'which', $dep );
@@ -169,6 +169,7 @@ sub start{
         open my $wfh,'>', 'control';
 	print $wfh "Name: $control_file{Name}\n" if exists $control_file{Name};
 	print $wfh "Package: $control_file{Package}\n" if exists $control_file{Package};
+	print $wfh "Author: $control_file{Author}\n" if exists $control_file{Author};
 	print $wfh "Version: $control_file{Version}\n" if exists $control_file{Version};
 	print $wfh "Architecture: $control_file{Architecture}\n" if exists $control_file{Architecture};
 	print $wfh "Maintainer: $control_file{Maintainer}\n" if exists $control_file{Maintainer};
@@ -246,13 +247,21 @@ sub packdir{
     remove_tree('DEBIAN');
 
     my @data = ();
-    find{ untaint => 1, wanted => sub { 
-        unless( /^\.$|^\.\.$|^control$|^postinst$|^prerm$/ ) { push @data, "$File::Find::dir/$_" }
-    } }, ('.');
+    opendir(my $dh, '.') || die "Can't open directory: $!";
+    while( readdir $dh ){
+        unless( /^\.$|^\.\.$|^control$|^preinst$|^postinst$|^prerm$|^postrm$|^conffiles$|^shlibs$|^triggers$/ ) { push @data, $_ }
+    }
+    closedir $dh;
 
-    my $data = Archive::Tar->new;
-    $data->add_files( @data );
-    $data->write('../data.tar.gz', COMPRESS_GZIP);
+    my $has_xz = dep('xz');
+    if( $has_xz ){
+	    system("tar -cf - @data | xz -9 -c - > ../data.tar.xz");
+    } else { system("tar -czf ../data.tar.gz @data") }
+    #my $data = Archive::Tar->new;
+    #$data->add_files( @data );
+    #if( Archive::Tar->has_xz_support ){
+    #	$data->write('../data.tar.xz', COMPRESS_XZ);
+    #} else { $data->write('../data.tar.gz', COMPRESS_GZIP) }
 
     make_path('DEBIAN');
 
@@ -268,9 +277,23 @@ sub packdir{
     if( -f '../triggers'){ copy('../triggers', 'triggers') and unlink '../triggers' }
     #md5sums
 
-    my $control = Archive::Tar->new;
-    $control->add_files( <*> );
-    $control->write('../../control.tar.gz', COMPRESS_GZIP);
+
+    my @control = ();
+    find{ untaint => 1, wanted => sub{
+	    if( /^control$|^preinst$|^postinst$|^prerm$|^postrm$|^conffiles$|^shlibs$|^triggers$/){ push @control, "$File::Find::dir/$_" }
+    } }, ('.');
+
+
+    if( $has_xz ){
+	    system("tar -cf - @control | xz -9 -c - > ../../control.tar.xz");
+    } else { system("tar -czf ../../control.tar.gz @control") }
+
+
+    #my $control = Archive::Tar->new;
+    #$control->add_files( <*> );
+    #if( Archive::Tar->has_xz_support ){
+    #    $control->write('../../control.tar.xz', COMPRESS_XZ);
+    #} else { $control->write('../../control.tar.gz', COMPRESS_GZIP) }
 
     open my $fh, '>', '../../debian-binary';
     print $fh "2.0\n";
@@ -289,15 +312,24 @@ sub packdir{
     open STDERR, '>', undef;;
     select STDERR; $| = 1;
     
-    system("ar -r $debname debian-binary control.tar.gz data.tar.gz");
+    if( $has_xz ){
+	    system("ar -r $debname debian-binary control.tar.xz data.tar.xz") and print "done: ar -r in has xz\n";
+    } else {
+	    system("ar -r $debname debian-binary control.tar.gz data.tar.gz") and print "done: ar -r in no xz\n" }
+
 
     close STDERR;
     open STDERR, ">&SAVEERR";
-            
-    chdir $cwd;
-    copy("../$debname", '.') and unlink ( "../$debname", '../debian-binary', '../control.tar.gz', '../data.tar.gz' );
 
-    dropkg() if( $dropkg{animation} == 1 );
+    chdir $cwd;
+    copy("../$debname", '.') and unlink("../$debname", '../debian-binary');
+    if( $has_xz ){
+	    unlink('../control.tar.xz', '../data.tar.xz');
+    } else { unlink('../control.tar.gz', '../data.tar.gz') }
+
+    #copy("../$debname", '.') and unlink ( "../$debname", '../debian-binary', '../control.tar.gz', '../data.tar.gz' );
+
+    #dropkg() if( $dropkg{animation} == 1 );
     open my $lsp, '-|', 'ls';
     while(<$lsp>){ print }
     close $lsp;
@@ -310,13 +342,29 @@ sub unpackdeb {
     system( "ar -x $deb");
     unlink("$deb", 'debian-binary');
 
-    my $control = Archive::Tar->new;
-    $control->read('control.tar.gz') and $control->extract();
-    unlink 'control.tar.gz';
+    #my $control = Archive::Tar->new;
+    #$control->read('control.tar.gz') and $control->extract();
+    #unlink 'control.tar.gz';
+    my @control_data_file = ();
+    find{ untaint => 1, wanted => sub{
+	    if( /^control\.tar\.|^data\.tar./){ push @control_data_file, $_ }
+    } }, ('.');
 
-    my $data = Archive::Tar->new;
-    $data->read( 'data.tar.gz' ) and $data->extract();
-    unlink( 'data.tar.gz' );
+    open SAVEERR, ">& STDERR";
+    open STDERR, '>', undef;;
+    select STDERR; $| = 1;
+
+    system("tar -xvf $control_data_file[0]");
+    system("tar -xvf $control_data_file[1]");
+
+    close STDERR;
+    open STDERR, ">&SAVEERR";
+
+    unlink @control_data_file;
+
+    #my $data = Archive::Tar->new;
+    #$data->read( 'data.tar.gz' ) and $data->extract();
+    #unlink( 'data.tar.gz' );
     
     open my $tree, '-|', 'tree';
     while(<$tree>){ print }
