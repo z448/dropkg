@@ -11,7 +11,7 @@ use Cwd;
 use Time::HiRes qw( usleep );
 use autodie;
 
-our $VERSION = "v1.9.4";
+our $VERSION = "v1.9.5";
 
 delete @ENV{ qw( IFS CDPATH ENV BASH_ENV ) };
 
@@ -309,16 +309,20 @@ sub packdir{
     chdir '..';
 
     open SAVEERR, ">& STDERR";
-    open STDERR, '>', undef;;
+    open SAVEOUT, ">& STDOUT";
+    open STDOUT, ">", undef;;
+    open STDERR, ">& STDOUT";
     select STDERR; $| = 1;
+    select STDOUT; $| = 1;
     
     if( $has_xz ){
 	    system("ar -r $debname debian-binary control.tar.xz data.tar.xz") and print "done: ar -r in has xz\n";
     } else {
 	    system("ar -r $debname debian-binary control.tar.gz data.tar.gz") and print "done: ar -r in no xz\n" }
 
-
+    close STDOUT;
     close STDERR;
+    open STDOUT, ">&SAVEOUT";
     open STDERR, ">&SAVEERR";
 
     chdir $cwd;
@@ -327,9 +331,8 @@ sub packdir{
 	    unlink('../control.tar.xz', '../data.tar.xz');
     } else { unlink('../control.tar.gz', '../data.tar.gz') }
 
-    #copy("../$debname", '.') and unlink ( "../$debname", '../debian-binary', '../control.tar.gz', '../data.tar.gz' );
 
-    #dropkg() if( $dropkg{animation} == 1 );
+    dropkg() if( $dropkg{animation} == 1 );
     open my $lsp, '-|', 'ls';
     while(<$lsp>){ print }
     close $lsp;
@@ -351,13 +354,18 @@ sub unpackdeb {
     } }, ('.');
 
     open SAVEERR, ">& STDERR";
-    open STDERR, '>', undef;;
+    open SAVEOUT, ">& STDOUT";
+    open STDOUT, ">", undef;;
+    open STDERR, ">& STDOUT";
     select STDERR; $| = 1;
+    select STDOUT; $| = 1;
 
     system("tar -xvf $control_data_file[0]");
     system("tar -xvf $control_data_file[1]");
 
+    close STDOUT;
     close STDERR;
+    open STDOUT, ">&SAVEOUT";
     open STDERR, ">&SAVEERR";
 
     unlink @control_data_file;
@@ -403,7 +411,7 @@ dropkg - creates debian binary packages
 
 =head1 VERSION
 
-This document describes dropkg version 1.9.3
+This document describes dropkg version 1.9.5
 
 =head1 SYNOPSIS
 
