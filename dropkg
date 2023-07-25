@@ -11,7 +11,7 @@ use Cwd;
 use Time::HiRes qw( usleep );
 use autodie;
 
-our $VERSION = "v1.9.3";
+our $VERSION = "v1.9.4";
 
 delete @ENV{ qw( IFS CDPATH ENV BASH_ENV ) };
 
@@ -91,6 +91,9 @@ if( -f "$ENV{HOME}/dropkg_control" ){
                         Maintainer  => '(mandatory)',
                         Description => '(mandatory)',
                         Homepage    => '(optional)',
+                        Suggests    => '(optional)',
+                        Recommends   => '(optional)',
+                        ' '    => '(optional) Place for extended description'
             );
 }
 
@@ -127,11 +130,18 @@ sub start{
     if( $seen{control} == 1 and $seen{deb} == 0 ){
     
         my %control_file;
+	my $ed_count = 0;
         open my $rfh, '<', './control';
         while(<$rfh>){
             chomp;
-            my( $field, $value ) = split /:\s/, $_;
-            $control_file{$field} = $value;
+	    if(/(^\ )(.*)/){
+		    $ed_count++;
+		    $control_file{$ed_count} = $2;
+		    #$control_file{$1} = $2;
+	    } else {
+		    my( $field, $value ) = split /:\s/, $_;
+		    $control_file{$field} = $value;
+	    }
         }
         close $rfh;
 
@@ -158,9 +168,20 @@ sub start{
         }
 
         open my $wfh,'>', 'control';
-        for( keys %control_file ){
-            print $wfh "$_: $control_file{$_}\n";
-        }
+	print $wfh "Name: $control_file{Name}\n" if exists $control_file{Name};
+	print $wfh "Package: $control_file{Package}\n" if exists $control_file{Package};
+	print $wfh "Version: $control_file{Version}\n" if exists $control_file{Version};
+	print $wfh "Architecture: $control_file{Architecture}\n" if exists $control_file{Architecture};
+	print $wfh "Maintainer: $control_file{Maintainer}\n" if exists $control_file{Maintainer};
+	print $wfh "Installed-Size: $control_file{'Installed-Size'}\n" if exists $control_file{'Installed-Size'};
+	print $wfh "Depends: $control_file{'Depends'}\n" if exists $control_file{'Depends'};
+	print $wfh "Recommends: $control_file{'Recommends'}\n" if exists $control_file{'Recommends'};
+	print $wfh "Suggests: $control_file{'Suggests'}\n" if exists $control_file{'Suggests'};
+	print $wfh "Section: $control_file{'Section'}\n" if exists $control_file{'Section'};
+	print $wfh "Priority: $control_file{'Priority'}\n" if exists $control_file{'Priority'};
+	print $wfh "Homepage: $control_file{'Homepage'}\n" if exists $control_file{'Homepage'};
+	print $wfh "Description: $control_file{'Description'}\n" if exists $control_file{'Description'};
+	for(1..$ed_count){ print $wfh " $control_file{$_}\n" if exists $control_file{$_} };
         close $wfh;
         
         packdir( debname() );
@@ -329,7 +350,7 @@ dropkg - creates debian binary packages
 
 =head1 VERSION
 
-This document describes alios version 1.8
+This document describes dropkg version 1.9.3
 
 =head1 SYNOPSIS
 
