@@ -137,7 +137,6 @@ sub start{
 	    if(/(^\ )(.*)/){
 		    $ed_count++;
 		    $control_file{$ed_count} = $2;
-		    #$control_file{$1} = $2;
 	    } else {
 		    my( $field, $value ) = split /:\s/, $_;
 		    $control_file{$field} = $value;
@@ -260,8 +259,14 @@ sub packdir{
     chdir 'DEBIAN';
     
     copy('../control', 'control') and unlink '../control';
+    if( -f '../preinst'){ copy('../preinst', 'preinst') and unlink '../preinst' }
     if( -f '../postinst'){ copy('../postinst', 'postinst') and unlink '../postinst' }
     if( -f '../prerm'){ copy('../prerm', 'prerm') and unlink '../prerm' }
+    if( -f '../postrm'){ copy('../postrm', 'postrm') and unlink '../postrm' }
+    if( -f '../conffiles'){ copy('../conffiles', 'conffiles') and unlink '../conffiles' }
+    if( -f '../shlibs'){ copy('../shlibs', 'shlibs') and unlink '../shlibs' }
+    if( -f '../triggers'){ copy('../triggers', 'triggers') and unlink '../triggers' }
+    #md5sums
 
     my $control = Archive::Tar->new;
     $control->add_files( <*> );
