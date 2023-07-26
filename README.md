@@ -56,6 +56,8 @@ Creates debian bianry package with contents of current directory if there is con
 
     Place 'control' file into 'MyTmp' directory. `dropkg -t` can print you template of control file.
 
+    Run dropkg without any option
+.
     `dropkg`
 
     Name of .deb file is taked from control file, Name + Version + Architecture + .deb.
