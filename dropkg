@@ -30,15 +30,15 @@ sub debian_manual{
 }
 
 
-my %dropkg = ( animation => 1 );
+my %dropkg = ( animation => 1, deb_name => "Package_Version_Architecture" );
 sub conf{
     if( -f "$ENV{HOME}/.dropkg" ){
         open my $conf, '<', "$ENV{HOME}/.dropkg";
         while(<$conf>){
             my( $field, $value ) = split /:\s+/, $_;
-                $dropkg{$field} = $value;
-            }
-        }
+            $dropkg{$field} = $value;
+	}
+    }
 }
 
 
@@ -467,11 +467,11 @@ dropkg is hosted on L<github|https://github.com/z448/dropkg>. You can track and 
 
 =head1 AUTHOR
 
-Zdeněk Bohuněk, C<< <4zdenek@gmail.com> >>
+Zdeněk Bohuněk, C<< <zdenek@cpan.org> >>
 
 =head1 COPYRIGHT
 
-Copyright © 2016-2023, Zdeněk Bohuněk C<< <4zdenek@gmail.com> >>. All rights reserved.
+Copyright © 2016-2023, Zdeněk Bohuněk C<< <zdenek@cpan.org> >>. All rights reserved.
 
 This code is available under the Artistic License 2.0.
 
