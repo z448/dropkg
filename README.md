@@ -12,10 +12,12 @@ This document describes dropkg version 1.9.3
 
 # INSTALLATION
 
+iOS
+
 ```bash
 git clone http://github.com/z448/dropkg
 cd dropkg/deb
-sudo dpkg -i ./dropkg_1.9.3-4_all.deb
+sudo dpkg -i dropkg_1.9.5_iphoneos-arm.deb
 ```
 # SYNOPSIS
 
