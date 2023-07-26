@@ -19,6 +19,16 @@ git clone http://github.com/z448/dropkg
 cd dropkg/deb
 sudo dpkg -i dropkg_1.9.5_iphoneos-arm.deb
 ```
+
+Linux/Unix
+
+```bash
+git clone http://github.com/z448/dropkg
+perl Makefile.PL
+make
+make install
+```
+
 # SYNOPSIS
 
 - Without any option dropkg creates debian bianry package with contents of current directory if there is control file in it. If there is debian package in current directory dropkg will unkack it into current directory.
