@@ -4,7 +4,7 @@ dropkg - creates debian binary packages
 
 # VERSION
 
-This document describes dropkg version 1.9.3
+This document describes dropkg version 1.9.5
 
 # GIF
 
@@ -73,10 +73,10 @@ dropkg is hosted on [github](https://github.com/z448/dropkg). You can track and 
 
 # AUTHOR
 
-Zdeněk Bohuněk, `<4zdenek@gmail.com>`
+Zdeněk Bohuněk, `<zdenek@cpan.org>`
 
 # COPYRIGHT
 
-Copyright © 2016-2023, Zdeněk Bohuněk `<4zdenek@gmail.com>`. All rights reserved.
+Copyright © 2016-2023, Zdeněk Bohuněk `<zdenek@cpan.org>`. All rights reserved.
 
 This code is available under the Artistic License 2.0.
