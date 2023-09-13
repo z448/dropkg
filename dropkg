@@ -77,7 +77,7 @@ if( -f "$ENV{HOME}/dropkg_control" ){
         $control{$field} = $value;
     }
 } else {
-            %control = ( Author => '(mandatory)',
+            %control = ( Author => '(optional)',
                         Version => '(mandatory)',
                         Name    => '(mandatory)',
                         Package => '(mandatory)',
