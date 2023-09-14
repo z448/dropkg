@@ -79,7 +79,7 @@ if( -f "$ENV{HOME}/dropkg_control" ){
 } else {
             %control = ( Author => '(optional)',
                         Version => '(mandatory)',
-                        Name    => '(mandatory)',
+                        Name    => '(optional)',
                         Package => '(mandatory)',
                         Source  => '(optional)',
                         Section => '(recomended)',
