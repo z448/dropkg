@@ -11,7 +11,7 @@ use Cwd;
 use Time::HiRes qw( usleep );
 use autodie;
 
-our $VERSION = "v1.9.6";
+our $VERSION = "v1.9.7";
 
 delete @ENV{ qw( IFS CDPATH ENV BASH_ENV ) };
 
@@ -331,7 +331,7 @@ sub unpackdeb {
 
     my @control_data_file = ();
     find{ untaint => 1, wanted => sub{
-	    if( /^control\.tar\.(gz|xz)$|^data\.tar\.(gz|xz)$/){ push @control_data_file, $_ }
+	    if( /^control\.tar\.(gz|xz|lzma)$|^data\.tar\.(gz|xz|lzma)$/){ push @control_data_file, $_ }
     } }, ('.');
 
     open SAVEERR, ">& STDERR";
