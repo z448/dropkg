@@ -11,7 +11,7 @@ use Cwd;
 use Time::HiRes qw( usleep );
 use autodie;
 
-our $VERSION = "v1.9.7";
+our $VERSION = "v1.9.8";
 
 delete @ENV{ qw( IFS CDPATH ENV BASH_ENV ) };
 
@@ -235,7 +235,7 @@ sub debname{
         my( $field, $value ) = split /:\s/, $_;
         $control_file{$field} = $value;
     }
-    my $debname = $ARGV[0] ? $ARGV[0] : "$control_file{Name}_$control_file{Version}_$control_file{Architecture}.deb";
+    my $debname = $ARGV[0] ? $ARGV[0] : "$control_file{Package}_$control_file{Version}_$control_file{Architecture}.deb";
 }
 
 
