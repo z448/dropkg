@@ -11,12 +11,12 @@ use Cwd;
 use Time::HiRes qw( usleep );
 use autodie;
 
-our $VERSION = "v1.9.8";
+our $VERSION = "v1.9.9";
 
 delete @ENV{ qw( IFS CDPATH ENV BASH_ENV ) };
 
 my %opt;
-getopts('tvmh', \%opt);
+getopts('tvmhc:', \%opt);
 
 
 sub debian_manual{
@@ -30,28 +30,31 @@ sub debian_manual{
 }
 
 
-my %dropkg = ( animation => 1, deb_name => "Package_Version_Architecture" );
+my %dropkg = ( animation => 1, compression => 'gzip', deb_name => "Package_Version_Architecture" );
 sub conf{
     if( -f "$ENV{HOME}/.dropkg" ){
         open my $conf, '<', "$ENV{HOME}/.dropkg";
         while(<$conf>){
-            my( $field, $value ) = split /:\s+/, $_;
-            $dropkg{$field} = $value;
-	}
+            chomp;
+            next if /(#|^$)/;
+            next unless /:/;
+            my( $field, $value ) = split /:\s*/, $_;
+            $dropkg{$field} = $value if $field =~ /^(animation|compression|deb_name)$/;
+	    }
     }
 }
 
 
 sub dep{
     my $dep = shift || 0;
-    my %dep = ( ar => 0, tree => 0, tar => 0, xz => 0 );
+    my %dep = ( ar => 0, tree => 0, tar => 0, gzip => 0, bzip2 => 0, lzma => 0, xz => 0 );
 
 
     open( my $depph, "-|", 'which', $dep );
     while(<$depph>){
         chomp;
-        if( /\/$dep$/ ){
-            $dep{$dep} = 1;
+        if( /\/($dep)$/ ){
+            $dep{$dep} = $1;
             if( $dep eq 'tar' ){
                 open( my $tarph, '-|', 'tar', '--version' );
                 while(<$tarph>){
@@ -129,7 +132,7 @@ sub start{
     if( $seen{control} == 0 and $seen{deb} == 0 ){ print "there is no control or .deb file in current directory\n" and  exit }
     if( $seen{control} == 1 and $seen{deb} == 0 ){
     
-        my %control_file;
+    my %control_file;
 	my $ed_count = 0;
         open my $rfh, '<', './control';
         while(<$rfh>){
@@ -158,7 +161,7 @@ sub start{
             exit;
         }
 
-	$control_file{'Installed-Size'} = installed_size();
+	    $control_file{'Installed-Size'} = installed_size();
     
         if( defined $opt{t} ){
             for( keys %control ){
@@ -166,7 +169,7 @@ sub start{
             } exit;
         }
 
-        open my $wfh,'>', 'control';
+    open my $wfh,'>', 'control';
 	print $wfh "Name: $control_file{Name}\n" if exists $control_file{Name};
 	print $wfh "Package: $control_file{Package}\n" if exists $control_file{Package};
 	print $wfh "Author: $control_file{Author}\n" if exists $control_file{Author};
@@ -253,11 +256,16 @@ sub packdir{
     }
     closedir $dh;
 
-    my $has_xz = dep('xz');
-    if( $has_xz ){
-	    system("tar -cf - @data | xz -9 -c - > data.tar.xz");
-    } else { system("tar -czf data.tar.gz @data") }
-    
+    $dropkg{compression} = $opt{c} if $opt{c};
+    die "dropkg: unsupported compression $dropkg{compression}\n" unless $dropkg{compression} =~ /^(gzip|bzip2|lzma|xz)$/;
+    die "dropkg: can't compress with $dropkg{compression}, $dropkg{compression} not installed\n" unless dep($dropkg{compression});
+
+    if( $dropkg{compression} eq 'gzip' ){
+	    system("tar -cf - @data | $dropkg{compression} -9 -c - > data.tar.gz");
+    } elsif( $dropkg{compression} eq 'bzip2' ){
+	    system("tar -cf - @data | $dropkg{compression} -9 -c - > data.tar.bz2");
+    } else { system("tar -cf - @data | $dropkg{compression} -9 -c - > data.tar.$dropkg{compression}") }
+
     make_path('DEBIAN');
     chdir 'DEBIAN';
     
@@ -271,17 +279,13 @@ sub packdir{
     if( -f '../triggers'){ copy('../triggers', 'triggers') and unlink '../triggers' }
     #md5sums
 
-
     my @control = ();
     find{ untaint => 1, wanted => sub{
 	    if( -f ){ push @control, "$File::Find::dir/$_" }
     } }, ('.');
 
-
-    if( $has_xz ){
-	    system("tar -cf - @control | xz -9 -c - > ../control.tar.xz");
-    } else { system("tar -czf ../control.tar.gz @control") }
-
+    system("tar -czf ../control.tar.gz @control");
+    
     open my $fh, '>', '../debian-binary';
     print $fh "2.0\n";
     close $fh;
@@ -300,21 +304,24 @@ sub packdir{
     select STDERR; $| = 1;
     select STDOUT; $| = 1;
     
-    if( $has_xz ){
-	    system("ar -r $debname debian-binary control.tar.xz data.tar.xz");
-    } else {
-	    system("ar -r $debname debian-binary control.tar.gz data.tar.gz") }
+    if($dropkg{compression} eq 'gzip'){
+	    system("ar -r $debname debian-binary control.tar.gz data.tar.gz");
+    } elsif($dropkg{compression} eq 'bzip2'){
+	    system("ar -r $debname debian-binary control.tar.gz data.tar.bz2");
+    } else { system("ar -r $debname debian-binary control.tar.gz data.tar.$dropkg{compression}") }
 
     close STDOUT;
     close STDERR;
     open STDOUT, ">&SAVEOUT";
     open STDERR, ">&SAVEERR";
 
-    unlink('./debian-binary');
-
-    if( $has_xz ){
-	    unlink('./control.tar.xz', './data.tar.xz');
-    } else { unlink('./control.tar.gz', './data.tar.gz') }
+    unlink('./debian-binary', './control.tar.gz');
+    if( $dropkg{compression} eq 'gzip' ){
+        unlink('./data.tar.gz');
+    } elsif( $dropkg{compression} eq 'bzip2' ){
+        unlink('./data.tar.bz2');
+    } else { unlink("./data.tar.$dropkg{compression}") }
+    
 
     dropkg() if( $dropkg{animation} == 1 );
     open my $lsp, '-|', 'ls';
@@ -331,7 +338,7 @@ sub unpackdeb {
 
     my @control_data_file = ();
     find{ untaint => 1, wanted => sub{
-	    if( /^control\.tar\.(gz|xz|lzma)$|^data\.tar\.(gz|xz|lzma)$/){ push @control_data_file, $_ }
+	    if( /^control\.tar\.(gz|bz2|lzma|xz)$|^data\.tar\.(gz|bz2|lzma|xz)$/){ push @control_data_file, $_ }
     } }, ('.');
 
     open SAVEERR, ">& STDERR";
@@ -375,7 +382,6 @@ if( $opt{t} ){
     print "$VERSION\n";
 } else {
     conf();
-    dep();
     start();
 }
 
@@ -398,6 +404,8 @@ This document describes dropkg version 1.9.5
 
 
 =item C<-v> show version
+
+=item C<-c> set compression for data, supported compression strings: gzip(default), bzip2, lzma, xz
 
 =item C<-t> show control file template  
 

@@ -32,6 +32,7 @@ make install
 # SYNOPSIS
 
 - Without any option dropkg creates debian bianry package with contents of current directory if there is control file in it. If there is debian package in current directory dropkg will unkack it into current directory.
+- `-c` set compression for data, supported compression strings: gzip(default), bzip2, lzma, xz
 - `-v` show version
 - `-t` show control file template  
 - `-m` show debian policy manual 
