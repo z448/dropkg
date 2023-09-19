@@ -11,7 +11,7 @@ use Cwd;
 use Time::HiRes qw( usleep );
 use autodie;
 
-our $VERSION = "v1.9.9";
+our $VERSION = "v2.0";
 
 delete @ENV{ qw( IFS CDPATH ENV BASH_ENV ) };
 
@@ -334,12 +334,28 @@ sub unpackdeb {
     unless( -f $deb ){ print "File $deb is not in current directory.\n" }
 
     system( "ar -x $deb");
-    unlink("$deb", 'debian-binary');
+    unlink './debian-binary';
 
-    my @control_data_file = ();
+    my @tar_file = ();
     find{ untaint => 1, wanted => sub{
-	    if( /^control\.tar\.(gz|bz2|lzma|xz)$|^data\.tar\.(gz|bz2|lzma|xz)$/){ push @control_data_file, $_ }
+	    if( /^control\.tar\.(gz|bz2|lzma|xz|zzz)$|^data\.tar\.(gz|bz2|lzma|xz|zzz)$/){ push @tar_file, $_ }
     } }, ('.');
+
+    my $imposible = 0;
+    for my $file( @tar_file ){
+        if( $file =~ /.+\.(.+)/){
+            my $compression = $1;
+            $compression =~ s/gz/gzip/;
+            $compression =~ s/bz2/bzip2/;
+            unless( dep($compression) ){
+                print "dropkg: can't extract $file, $compression not installed\n";
+                $imposible = 1;
+            }
+        } 
+    }
+    unlink @tar_file and exit if $imposible;
+
+    unlink $deb;
 
     open SAVEERR, ">& STDERR";
     open SAVEOUT, ">& STDOUT";
@@ -348,15 +364,15 @@ sub unpackdeb {
     select STDERR; $| = 1;
     select STDOUT; $| = 1;
 
-    system("tar -xvf $control_data_file[0]");
-    system("tar -xvf $control_data_file[1]");
+    system("tar -xvf $tar_file[0]");
+    system("tar -xvf $tar_file[1]");
 
     close STDOUT;
     close STDERR;
     open STDOUT, ">&SAVEOUT";
     open STDERR, ">&SAVEERR";
 
-    unlink @control_data_file;
+    unlink @tar_file;
 
     open my $tree, '-|', 'tree';
     while(<$tree>){ print }
