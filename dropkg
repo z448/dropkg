@@ -11,7 +11,7 @@ use Cwd;
 use Time::HiRes qw( usleep );
 use autodie;
 
-our $VERSION = "v2.0.1";
+our $VERSION = "v2.0.2";
 
 delete @ENV{ qw( IFS CDPATH ENV BASH_ENV ) };
 
@@ -46,26 +46,13 @@ sub conf{
 
 
 sub dep{
-    my $dep = shift || 0;
-    my %dep = ( ar => 0, tree => 0, tar => 0, gzip => 0, bzip2 => 0, lzma => 0, xz => 0 );
-
+    my $dep = shift;
 
     open( my $depph, "-|", 'which', $dep );
     while(<$depph>){
         chomp;
-        if( /\/($dep)$/ ){
-            $dep{$dep} = $1;
-            if( $dep eq 'tar' ){
-                open( my $tarph, '-|', 'tar', '--version' );
-                while(<$tarph>){
-	                if(/GNU/){ $dep{$dep} = 'gnu' }
-	                if(/bsdtar/){ $dep{$dep} = 'bsd' }
-                }
-                close $tarph;
-            }
-        }
+        return $1 if /\/($dep)$/;
     }
-    return $dep{$dep};
 }
 
 unless( dep('ar') ){ print "'ar' dependency is missing. Please use cpan to install it 'cpan PerlPowerTools'.\n" and exit }
@@ -338,7 +325,7 @@ sub unpackdeb {
 
     my @tar_file = ();
     find{ untaint => 1, wanted => sub{
-	    if( /^control\.tar\.(gz|bz2|lzma|xz)$|^data\.tar\.(gz|bz2|lzma|xz)$/){ push @tar_file, $_ }
+	    if( /^control\.tar\.(gz|bz2|lzma|xz)$|^data\.tar\.(gz|bz2|lzma|xz|zzz)$/){ push @tar_file, $_ }
     } }, ('.');
 
     my $imposible = 0;
