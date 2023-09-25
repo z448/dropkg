@@ -9,9 +9,10 @@ use File::Path qw( make_path remove_tree);
 use Getopt::Std;
 use Cwd;
 use Time::HiRes qw( usleep );
+use Digest::MD5 qw( md5_hex );
 use autodie;
 
-our $VERSION = "v2.0.2";
+our $VERSION = "v2.0.3";
 
 delete @ENV{ qw( IFS CDPATH ENV BASH_ENV ) };
 
@@ -239,9 +240,26 @@ sub packdir{
     my @data = ();
     opendir(my $dh, '.') || die "Can't open directory: $!";
     while( readdir $dh ){
-        unless( /^\.$|^\.\.$|^control$|^preinst$|^postinst$|^prerm$|^postrm$|^conffiles$|^shlibs$|^triggers$/ ) { push @data, $_ }
+        unless( /^\.$|^\.\.$|^control$|^preinst$|^postinst$|^prerm$|^postrm$|^conffiles$|^shlibs$|^triggers$|^md5sums$/ ) { push @data, $_ }
     }
     closedir $dh;
+
+    unlink './md5sums' if -f './md5sums';
+    my @data_file = ();
+    find{ untaint => 1, wanted => sub{
+        unless( /^\.$|^\.\.$|^control$|^preinst$|^postinst$|^prerm$|^postrm$|^conffiles$|^shlibs$|^triggers$|^md5sums$/ ) {
+            push(@data_file, "$File::Find::dir/$_") if -f;
+        }
+    } }, ('.');
+    for my $file( @data_file ){
+        open( my $rfh, '<', "$file") || die "Can't open file $file: $!";
+        my $md5 = Digest::MD5->new->addfile($rfh)->hexdigest;
+        close $rfh;
+
+        open( my $wfh, '>>', './md5sums') || die "Can't open file ./md5sums: $!";
+        print $wfh "$md5 $file\n";
+        close $wfh;
+    }
 
     $dropkg{compression} = $opt{c} if $opt{c};
     die "dropkg: unsupported compression $dropkg{compression}\n" unless $dropkg{compression} =~ /^(gzip|bzip2|lzma|xz)$/;
@@ -257,6 +275,7 @@ sub packdir{
     chdir 'DEBIAN';
     
     copy('../control', 'control') and unlink '../control';
+    copy('../md5sums', 'md5sums') and unlink '../md5sums';
     if( -f '../preinst'){ copy('../preinst', 'preinst') and unlink '../preinst' }
     if( -f '../postinst'){ copy('../postinst', 'postinst') and unlink '../postinst' }
     if( -f '../prerm'){ copy('../prerm', 'prerm') and unlink '../prerm' }
