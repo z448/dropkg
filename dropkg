@@ -12,7 +12,7 @@ use Time::HiRes qw( usleep );
 use Digest::MD5 qw( md5_hex );
 use autodie;
 
-our $VERSION = "v2.0.4";
+our $VERSION = "v2.0.5";
 
 delete @ENV{ qw( IFS CDPATH ENV BASH_ENV ) };
 
@@ -91,7 +91,7 @@ if( -f "$ENV{HOME}/dropkg_control" ){
                         Homepage    => '(optional)',
                         Suggests    => '(optional)',
                         Recommends   => '(optional)',
-                        ' '    => '(optional) Place for extended description'
+                        ' '    => 'Place for extended description (optional), start this line with empty space as this sentence.'
             );
 }
 
@@ -121,24 +121,23 @@ sub start{
             opendir(my $dh, '.');
             my @deb = grep{/\.deb$/}readdir($dh);
             print "$_\n" for @deb;
-            exit
+            exit;
         }
     }
     if( $seen{control} == 0 and $seen{deb} == 0 ){ print "there is no control or .deb file in current directory\n" and  exit }
     if( $seen{control} == 1 and $seen{deb} == 0 ){
-    
-    my %control_file;
-	my $ed_count = 0;
+        my %control_file;
+	    my $ed_line = 0;
         open my $rfh, '<', './control';
         while(<$rfh>){
             chomp;
-	    if(/(^\ )(.*)/){
-		    $ed_count++;
-		    $control_file{$ed_count} = $2;
-	    } else {
-		    my( $field, $value ) = split /:\s/, $_;
-		    $control_file{$field} = $value;
-	    }
+	        if(/(^\s+)(.*)/){
+		        $ed_line++;
+		        $control_file{$ed_line} = $2;
+	        } else {
+                my( $field, $value ) = split /:\s+/, $_;
+		        $control_file{$field} = $value;
+	        }   
         }
         close $rfh;
 
@@ -157,30 +156,14 @@ sub start{
         }
 
 	    $control_file{'Installed-Size'} = installed_size();
-    
-        if( defined $opt{t} ){
-            for( keys %control ){
-                print "$_: $control{$_}\n";
-            } exit;
-        }
 
     open my $wfh,'>', 'control';
-	print $wfh "Name: $control_file{Name}\n" if exists $control_file{Name};
-	print $wfh "Package: $control_file{Package}\n" if exists $control_file{Package};
-	print $wfh "Author: $control_file{Author}\n" if exists $control_file{Author};
-	print $wfh "Version: $control_file{Version}\n" if exists $control_file{Version};
-	print $wfh "Architecture: $control_file{Architecture}\n" if exists $control_file{Architecture};
-	print $wfh "Maintainer: $control_file{Maintainer}\n" if exists $control_file{Maintainer};
-	print $wfh "Installed-Size: $control_file{'Installed-Size'}\n" if exists $control_file{'Installed-Size'};
-	print $wfh "Depends: $control_file{'Depends'}\n" if exists $control_file{'Depends'};
-	print $wfh "Recommends: $control_file{'Recommends'}\n" if exists $control_file{'Recommends'};
-	print $wfh "Suggests: $control_file{'Suggests'}\n" if exists $control_file{'Suggests'};
-	print $wfh "Section: $control_file{'Section'}\n" if exists $control_file{'Section'};
-	print $wfh "Priority: $control_file{'Priority'}\n" if exists $control_file{'Priority'};
-	print $wfh "Homepage: $control_file{'Homepage'}\n" if exists $control_file{'Homepage'};
+    for(keys %control_file){
+        unless(/\d+|Description/){ print $wfh "$_: $control_file{$_}\n" if exists $control_file{$_} }
+    }
 	print $wfh "Description: $control_file{'Description'}\n" if exists $control_file{'Description'};
-	for(1..$ed_count){ print $wfh " $control_file{$_}\n" if exists $control_file{$_} };
-        close $wfh;
+    for(1..$ed_line){ print $wfh " $control_file{$_}\n" if exists $control_file{$_} };
+    close $wfh;
         
         packdir( debname() );
     }
@@ -203,16 +186,16 @@ sub dropkg{
     for( 0..16 ){
         $usleep = $usleep - 8000;
         if( $usleep < 8000 ){ $usleep = 8000 }
-
-        #if( $_ == 1 ){ print "d\n" }
-        #elsif( $_ == 2 ){ print "r\n" }
-        #elsif( $_ == 4 ){ print "o\n" }
-        #elsif( $_ == 7 ){ print "p\n" }
-        #elsif( $_ == 11 ){ print "k\n" }
-        #elsif( $_ == 16 ){ print "g\n" }
-        #else { print "\n" }
+=head1        
+        if( $_ == 1 ){ print "d\n" }
+        elsif( $_ == 2 ){ print "r\n" }
+        elsif( $_ == 4 ){ print "o\n" }
+        elsif( $_ == 7 ){ print "p\n" }
+        elsif( $_ == 11 ){ print "k\n" }
+        elsif( $_ == 16 ){ print "g\n" }
+        else { print "\n" }
+=cut
 	    print "\n";
-
         usleep( $usleep );
     }
 
@@ -243,6 +226,7 @@ sub packdir{
     if( $ENV{PWD} eq '/' ){ print "You are in root directory, create new directory and place your files in it\n" and exit }
 
     remove_tree('DEBIAN');
+    unlink './debian-binary' if -f './debian-binary';
 
     my @data = ();
     opendir(my $dh, '.') || die "Can't open directory: $!";
@@ -290,7 +274,6 @@ sub packdir{
     if( -f '../conffiles'){ copy('../conffiles', 'conffiles') and unlink '../conffiles' }
     if( -f '../shlibs'){ copy('../shlibs', 'shlibs') and unlink '../shlibs' }
     if( -f '../triggers'){ copy('../triggers', 'triggers') and unlink '../triggers' }
-    #md5sums
 
     my @control = ();
     find{ untaint => 1, wanted => sub{
@@ -305,7 +288,7 @@ sub packdir{
 
     chdir '..';
     for( <*> ){
-        next if(/^debian-binary$|^data\.tar\.|control\.tar/);
+        next if(/^debian-binary$|^data\.tar|^control\.tar/);
         remove_tree $_ if -d $_;
         unlink $_ if -f $_;
     }
@@ -402,7 +385,9 @@ sub help {
 
 
 if( $opt{t} ){
-    print "$_: $control{$_}\n" for keys(%control);
+    for( keys %control ){ print "$_: $control{$_}\n" unless /^\s+|Description/ }
+    print "Description: $control{Description}\n";
+    print " $control{' '}\n";
 } elsif( $opt{m} ){
     debian_manual();
 } elsif( $opt{h} ){
@@ -423,7 +408,7 @@ dropkg - creates debian binary packages
 
 =head1 VERSION
 
-This document describes dropkg version 1.9.5
+This document describes dropkg version 2.0.5
 
 =head1 SYNOPSIS
 
@@ -434,7 +419,7 @@ This document describes dropkg version 1.9.5
 
 =item C<-v> show version
 
-=item C<-c> set compression for data, supported compression strings: gzip(default), bzip2, lzma, xz
+=item C<-c> set compression for data, recognized compression options: gzip, bzip2, lzma, xz
 
 =item C<-t> show control file template  
 
@@ -444,7 +429,7 @@ This document describes dropkg version 1.9.5
 
 =head1 DESCRIPTION
 
-Creates debian bianry package with contents of current directory if there is control file in it. If there is debian package in current directory dropkg will unkack it into current directory.
+Creates debian bianry package with contents of current directory if there is a control file in it. If there is debian package in it dropkg will extract its content into current directory.
 
 =head1 EXAMPLES
 
@@ -452,7 +437,7 @@ Creates debian bianry package with contents of current directory if there is con
 
 =item To create .deb package:
 
-You want to create .deb package that will install your program 'myprg' into '/usr/bin' directory. Create empty directory of any name (think of it as root '/' directory) then create 'usr/bin' path in that directory and move your program into that path.
+You want to create .deb package that will install your program 'myprg' into '/usr/bin' directory. Create empty directory of any name then create 'usr/bin' path in that directory and move your program into that path.
 
 C<mkdir MyTmp>
 
@@ -460,18 +445,22 @@ C<mkdir -p MyTmp/usr/bin>
 
 C<mv myprg MyTmp/usr/bin>
 
+Place 'control' file into 'MyTmp' directory. C<dropkg -t> can print template of control file.
+
+C<mv control MyTmp>
+
 C<cd MyTmp>
 
-Place 'control' file into 'MyTmp' directory. C<dropkg -t> can print you template of control file.
+Run dropkg without any options to create .deb package.
 
 C<dropkg>
 
-Name of .deb file is taked from control file, Name + Version + Architecture + .deb.
-To have different .deb filename pass it as 1st parameter C<dropkg myprg.deb>. 
+Name of .deb file is taked from control file, Package_Version_Architecture.deb. To have different .deb filename pass it as 1st parameter C<dropkg filename.deb>.
+By default gzip compression is used for data unless ~/.dropkg config contains different compression option. Compression can be also set by C<-c> switch which has precedence over value in config.  
 
 =item To unpack .deb package:
 
-Go into directory that contains .deb package and run C<dropkg> without any option. If there is more than one .deb file in current directory pass file name as first argument C<dropkg file.deb>.
+Go into directory that contains .deb package and run C<dropkg> without any option. If there is more than one .deb file in current directory pass filename as first parameter C<dropkg filename.deb>.
 
 =back
 
