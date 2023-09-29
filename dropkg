@@ -12,7 +12,7 @@ use Time::HiRes qw( usleep );
 use Digest::MD5 qw( md5_hex );
 use autodie;
 
-our $VERSION = "v2.0.3";
+our $VERSION = "v2.0.4";
 
 delete @ENV{ qw( IFS CDPATH ENV BASH_ENV ) };
 
@@ -31,7 +31,7 @@ sub debian_manual{
 }
 
 
-my %dropkg = ( animation => 1, compression => 'gzip', deb_name => "Package_Version_Architecture" );
+my %dropkg = ( animation => 1, compression => 'gzip' );
 sub conf{
     if( -f "$ENV{HOME}/.dropkg" ){
         open my $conf, '<', "$ENV{HOME}/.dropkg";
@@ -40,9 +40,16 @@ sub conf{
             next if /(#|^$)/;
             next unless /:/;
             my( $field, $value ) = split /:\s*/, $_;
-            $dropkg{$field} = $value if $field =~ /^(animation|compression|deb_name)$/;
+            $dropkg{$field} = $value if $field =~ /^(animation|compression)$/;
 	    }
     }
+    else {
+        open my $conf, '>', "$ENV{HOME}/.dropkg";
+        print $conf "animation: $dropkg{animation}\n\n";
+        print $conf "# recognized options for compression are: gzip, bzip2, lzma, xz\ncompression: $dropkg{compression}\n\n"; 
+        close $conf;
+    }
+
 }
 
 
