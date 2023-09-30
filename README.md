@@ -4,9 +4,9 @@ dropkg - creates debian binary packages
 
 # VERSION
 
-This document describes dropkg version 2.0.5
+This document describes dropkg version 2.0.7
 
-# GIF
+ # GIF
 
 ![dropkg](https://raw.githubusercontent.com/z448/dropkg/master/dropkg.gif)
 
@@ -28,18 +28,14 @@ perl Makefile.PL
 make
 make install
 ```
-               
+                
 # SYNOPSIS
 
-- Without any option dropkg creates debian bianry package with contents of current directory if there is control file in it. If there is debian package in current directory dropkg will unkack it into current directory.
+- Without any option dropkg creates debian binary package with contents of current directory if there is control file in it. If there is debian package in current directory dropkg will extract its contents into current directory.
 - `-v` show version
-- `-c` set compression for data, recognized compression options: gzip, bzip2, lzma, xz, zstd
+- `-c` set compression for data archive, recognized compression options: gzip, bzip2, lzma, xz, zstd
 - `-t` show control file template  
 - `-m` show debian policy manual 
-
-# DESCRIPTION
-
-Creates debian bianry package with contents of current directory if there is a control file in it. If there is debian package in it dropkg will extract its content into current directory.
 
 # EXAMPLES
 
@@ -53,7 +49,7 @@ Creates debian bianry package with contents of current directory if there is a c
 
     `mv myprg MyTmp/usr/bin`
 
-    Place 'control' file into 'MyTmp' directory. `dropkg -t` can print template of control file.
+    Place 'control' file into 'MyTmp' directory. `dropkg -t` can print template for control file.
 
     `mv control MyTmp`
 
@@ -64,9 +60,9 @@ Creates debian bianry package with contents of current directory if there is a c
     `dropkg`
 
     Name of .deb file is taked from control file, Package\_Version\_Architecture.deb. To have different .deb filename pass it as 1st parameter `dropkg filename.deb`.
-    By default gzip compression is used for data unless ~/.dropkg config contains different compression option. Compression can be also set by `-c` switch.  
+    By default gzip compression is used for data unless ~/.dropkg config contains different compression option. Compression can be also set by `-c` switch which has precedence over value in config.  
 
-- To unpack .deb package:
+- To extract .deb package:
 
     Go into directory that contains .deb package and run `dropkg` without any option. If there is more than one .deb file in current directory pass filename as first parameter `dropkg filename.deb`.
 

@@ -12,7 +12,7 @@ use Time::HiRes qw( usleep );
 use Digest::MD5 qw( md5_hex );
 use autodie;
 
-our $VERSION = "v2.0.6";
+our $VERSION = "v2.0.7";
 
 delete @ENV{ qw( IFS CDPATH ENV BASH_ENV ) };
 
@@ -51,6 +51,11 @@ sub conf{
     }
 
 }
+$dropkg{compression} = $opt{c} if $opt{c};
+$dropkg{compression_ext} = $dropkg{compression};
+$dropkg{compression_ext} =~ s/gzip/gz/;
+$dropkg{compression_ext} =~ s/bzip2/bz2/;
+$dropkg{compression_ext} =~ s/zstd/zst/;
 
 
 sub dep{
@@ -252,17 +257,10 @@ sub packdir{
         close $wfh;
     }
 
-    $dropkg{compression} = $opt{c} if $opt{c};
     die "dropkg: unsupported compression $dropkg{compression}\n" unless $dropkg{compression} =~ /^(gzip|bzip2|lzma|xz|zstd)$/;
     die "dropkg: can't compress with $dropkg{compression}, $dropkg{compression} not installed\n" unless dep($dropkg{compression});
 
-    if( $dropkg{compression} eq 'gzip' ){
-	    system("tar -cf - @data | $dropkg{compression} -9 -c - > data.tar.gz");
-    } elsif( $dropkg{compression} eq 'bzip2' ){
-	    system("tar -cf - @data | $dropkg{compression} -9 -c - > data.tar.bz2");
-    } elsif( $dropkg{compression} eq 'zstd' ){
-	    system("tar -cf - @data | $dropkg{compression} -9 -c - > data.tar.zst");
-    } else { system("tar -cf - @data | $dropkg{compression} -9 -c - > data.tar.$dropkg{compression}") }
+	system("tar -cf - @data | $dropkg{compression} -9 -c - > data.tar.$dropkg{compression_ext}");
 
     make_path('DEBIAN');
     chdir 'DEBIAN';
@@ -302,28 +300,14 @@ sub packdir{
     select STDERR; $| = 1;
     select STDOUT; $| = 1;
     
-    if($dropkg{compression} eq 'gzip'){
-	    system("ar -r $debname debian-binary control.tar.gz data.tar.gz");
-    } elsif($dropkg{compression} eq 'bzip2'){
-	    system("ar -r $debname debian-binary control.tar.gz data.tar.bz2");
-    } elsif($dropkg{compression} eq 'zstd'){
-	    system("ar -r $debname debian-binary control.tar.gz data.tar.zst");
-    } else { system("ar -r $debname debian-binary control.tar.gz data.tar.$dropkg{compression}") }
+	system("ar -r $debname debian-binary control.tar.gz data.tar.$dropkg{compression_ext}");
 
     close STDOUT;
     close STDERR;
     open STDOUT, ">&SAVEOUT";
     open STDERR, ">&SAVEERR";
 
-    unlink('./debian-binary', './control.tar.gz');
-    if( $dropkg{compression} eq 'gzip' ){
-        unlink('./data.tar.gz');
-    } elsif( $dropkg{compression} eq 'bzip2' ){
-        unlink('./data.tar.bz2');
-    } elsif( $dropkg{compression} eq 'zstd' ){
-        unlink('./data.tar.zst');
-    } else { unlink("./data.tar.$dropkg{compression}") }
-    
+    unlink('./debian-binary', './control.tar.gz', "./data.tar.$dropkg{compression_ext}");
 
     dropkg() if( $dropkg{animation} == 1 );
     open my $lsp, '-|', 'ls';
@@ -339,11 +323,9 @@ sub unpackdeb {
     unlink './debian-binary';
 
     my @tar_file = ();
-    opendir( my $dh, '.' );
-    for( readdir $dh ){
+    for(<*>){
 	    if( /^control\.tar|^data\.tar/){ push @tar_file, $_ }
     }
-    closedir $dh;
 
     my $imposible = 0;
     for my $file( @tar_file ){
@@ -385,9 +367,10 @@ sub unpackdeb {
 }
 
 sub help {
-	print "\nalios" . " - creates debian binary packages\n\n";
-	print "Usage:\n\twithout any option 'dropkg' creates .deb package if there is a 'control' file in current directory. If there is a '.deb' package it will unpack it.\n\n";
+	print "\ndropkg" . " - creates debian binary packages\n\n";
+	print "Usage:\n\tCreates .deb package if there is a 'control' file in current directory. If there is a '.deb' package in current directory it will extract it.\n\n";
 	print "\t" . "-v  show version\n";
+	print "\t" . "-c  compression for data (gzip, bzip2, lzma, xz, zstd)\n";
 	print "\t" . "-t  print control file template\n";
 	print "\t" . "-m  open debian policy manual\n\n";
 }
@@ -423,22 +406,18 @@ This document describes dropkg version 2.0.5
 
 =over 10
 
-=item Without any option dropkg creates debian bianry package with contents of current directory if there is control file in it. If there is debian package in current directory dropkg will unkack it into current directory.
+=item Without any option dropkg creates debian binary package with contents of current directory if there is control file in it. If there is debian package in current directory dropkg will extract its contents into current directory.
 
 
 =item C<-v> show version
 
-=item C<-c> set compression for data, recognized compression options: gzip, bzip2, lzma, xz, zstd
+=item C<-c> set compression for data archive, recognized compression options: gzip, bzip2, lzma, xz, zstd
 
 =item C<-t> show control file template  
 
 =item C<-m> show debian policy manual 
 
 =back
-
-=head1 DESCRIPTION
-
-Creates debian bianry package with contents of current directory if there is a control file in it. If there is debian package in it dropkg will extract its content into current directory.
 
 =head1 EXAMPLES
 
@@ -454,7 +433,7 @@ C<mkdir -p MyTmp/usr/bin>
 
 C<mv myprg MyTmp/usr/bin>
 
-Place 'control' file into 'MyTmp' directory. C<dropkg -t> can print template of control file.
+Place 'control' file into 'MyTmp' directory. C<dropkg -t> can print template for control file.
 
 C<mv control MyTmp>
 
@@ -467,7 +446,7 @@ C<dropkg>
 Name of .deb file is taked from control file, Package_Version_Architecture.deb. To have different .deb filename pass it as 1st parameter C<dropkg filename.deb>.
 By default gzip compression is used for data unless ~/.dropkg config contains different compression option. Compression can be also set by C<-c> switch which has precedence over value in config.  
 
-=item To unpack .deb package:
+=item To extract .deb package:
 
 Go into directory that contains .deb package and run C<dropkg> without any option. If there is more than one .deb file in current directory pass filename as first parameter C<dropkg filename.deb>.
 
