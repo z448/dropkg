@@ -12,7 +12,7 @@ use Time::HiRes qw( usleep );
 use Digest::MD5 qw( md5_hex );
 use autodie;
 
-our $VERSION = "v2.0.5";
+our $VERSION = "v2.0.6";
 
 delete @ENV{ qw( IFS CDPATH ENV BASH_ENV ) };
 
@@ -46,7 +46,7 @@ sub conf{
     else {
         open my $conf, '>', "$ENV{HOME}/.dropkg";
         print $conf "animation: $dropkg{animation}\n\n";
-        print $conf "# recognized options for compression are: gzip, bzip2, lzma, xz\ncompression: $dropkg{compression}\n\n"; 
+        print $conf "# recognized options for compression are: gzip, bzip2, lzma, xz, zstd\ncompression: $dropkg{compression}\n\n"; 
         close $conf;
     }
 
@@ -253,13 +253,15 @@ sub packdir{
     }
 
     $dropkg{compression} = $opt{c} if $opt{c};
-    die "dropkg: unsupported compression $dropkg{compression}\n" unless $dropkg{compression} =~ /^(gzip|bzip2|lzma|xz)$/;
+    die "dropkg: unsupported compression $dropkg{compression}\n" unless $dropkg{compression} =~ /^(gzip|bzip2|lzma|xz|zstd)$/;
     die "dropkg: can't compress with $dropkg{compression}, $dropkg{compression} not installed\n" unless dep($dropkg{compression});
 
     if( $dropkg{compression} eq 'gzip' ){
 	    system("tar -cf - @data | $dropkg{compression} -9 -c - > data.tar.gz");
     } elsif( $dropkg{compression} eq 'bzip2' ){
 	    system("tar -cf - @data | $dropkg{compression} -9 -c - > data.tar.bz2");
+    } elsif( $dropkg{compression} eq 'zstd' ){
+	    system("tar -cf - @data | $dropkg{compression} -9 -c - > data.tar.zst");
     } else { system("tar -cf - @data | $dropkg{compression} -9 -c - > data.tar.$dropkg{compression}") }
 
     make_path('DEBIAN');
@@ -304,6 +306,8 @@ sub packdir{
 	    system("ar -r $debname debian-binary control.tar.gz data.tar.gz");
     } elsif($dropkg{compression} eq 'bzip2'){
 	    system("ar -r $debname debian-binary control.tar.gz data.tar.bz2");
+    } elsif($dropkg{compression} eq 'zstd'){
+	    system("ar -r $debname debian-binary control.tar.gz data.tar.zst");
     } else { system("ar -r $debname debian-binary control.tar.gz data.tar.$dropkg{compression}") }
 
     close STDOUT;
@@ -316,6 +320,8 @@ sub packdir{
         unlink('./data.tar.gz');
     } elsif( $dropkg{compression} eq 'bzip2' ){
         unlink('./data.tar.bz2');
+    } elsif( $dropkg{compression} eq 'zstd' ){
+        unlink('./data.tar.zst');
     } else { unlink("./data.tar.$dropkg{compression}") }
     
 
@@ -333,9 +339,11 @@ sub unpackdeb {
     unlink './debian-binary';
 
     my @tar_file = ();
-    find{ untaint => 1, wanted => sub{
-	    if( /^control\.tar\.(gz|bz2|lzma|xz)$|^data\.tar\.(gz|bz2|lzma|xz|zzz)$/){ push @tar_file, $_ }
-    } }, ('.');
+    opendir( my $dh, '.' );
+    for( readdir $dh ){
+	    if( /^control\.tar|^data\.tar/){ push @tar_file, $_ }
+    }
+    closedir $dh;
 
     my $imposible = 0;
     for my $file( @tar_file ){
@@ -343,6 +351,7 @@ sub unpackdeb {
             my $compression = $1;
             $compression =~ s/gz/gzip/;
             $compression =~ s/bz2/bzip2/;
+            $compression =~ s/zst/zstd/;
             unless( dep($compression) ){
                 print "dropkg: can't extract $file, $compression not installed\n";
                 $imposible = 1;
@@ -419,7 +428,7 @@ This document describes dropkg version 2.0.5
 
 =item C<-v> show version
 
-=item C<-c> set compression for data, recognized compression options: gzip, bzip2, lzma, xz
+=item C<-c> set compression for data, recognized compression options: gzip, bzip2, lzma, xz, zstd
 
 =item C<-t> show control file template  
 

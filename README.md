@@ -33,7 +33,7 @@ make install
 
 - Without any option dropkg creates debian bianry package with contents of current directory if there is control file in it. If there is debian package in current directory dropkg will unkack it into current directory.
 - `-v` show version
-- `-c` set compression for data, recognized compression options: gzip, bzip2, lzma, xz
+- `-c` set compression for data, recognized compression options: gzip, bzip2, lzma, xz, zstd
 - `-t` show control file template  
 - `-m` show debian policy manual 
 
@@ -64,7 +64,7 @@ Creates debian bianry package with contents of current directory if there is a c
     `dropkg`
 
     Name of .deb file is taked from control file, Package\_Version\_Architecture.deb. To have different .deb filename pass it as 1st parameter `dropkg filename.deb`.
-    By default gzip compression is used for data unless ~/.dropkg config contains different compression option. Compression can be also set by `-c` switch which has precedence over value in config.  
+    By default gzip compression is used for data unless ~/.dropkg config contains different compression option. Compression can be also set by `-c` switch.  
 
 - To unpack .deb package:
 
