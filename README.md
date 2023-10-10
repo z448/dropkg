@@ -17,7 +17,7 @@ This document describes dropkg version 2.0.8
 ```bash
 git clone http://github.com/z448/dropkg
 cd dropkg/deb
-sudo dpkg -i dropkg_2.0.5_all.deb
+sudo dpkg -i dropkg_2.0.8_all.deb
 ```
 
 ##### Linux/Unix
