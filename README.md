@@ -17,7 +17,7 @@ This document describes dropkg version 2.0.8
 ```bash
 git clone http://github.com/z448/dropkg
 cd dropkg/deb
-sudo dpkg -i dropkg_2.0.8_all.deb
+sudo dpkg -i dropkg_2.0.9_all.deb
 ```
 
 ##### Linux/Unix
@@ -43,7 +43,7 @@ make install
 
 ##### Creating .deb package:
     
-- You have program 'myprg' that is using config file 'myprg.conf'. To create .deb package that will install program into '/usr/bin' folder and place config file into '/etc' folder create 'usr/bin' and 'etc' paths in current folder and move there program and config file.
+- You have program 'myprg' that is using config file 'myprg.conf'. To create .deb package that will install program into '/usr/bin' directory and place config file into '/etc' directory create 'usr/bin' and 'etc' paths in current directory and move there program and config file.
 ```sh
 $ pwd
 ~/myTmp
@@ -101,7 +101,7 @@ myprg_1.0_iphoneos-arm.deb
 
 
 ##### Extracting .deb package:
-- Go into folder that contains .deb package and run `dropkg` without any option. If there is more than one .deb file in current directory pass filename as first parameter `dropkg filename.deb`.
+- Go into directory that contains .deb package and run `dropkg` without any option. If there is more than one .deb file in current directory pass filename as first parameter `dropkg filename.deb`.
 ```bash
 $ ls
 myprg_1.0_iphoneos-arm.deb

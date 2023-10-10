@@ -12,7 +12,7 @@ use Time::HiRes qw( usleep );
 use Digest::MD5 qw( md5_hex );
 use autodie;
 
-our $VERSION = "v2.0.8";
+our $VERSION = "v2.0.9";
 
 delete @ENV{ qw( IFS CDPATH ENV BASH_ENV ) };
 
@@ -423,7 +423,7 @@ This document describes dropkg version 2.0.8
 
 =over 4
 
-=item - You have program 'myprg' that is using config file 'myprg.conf'. To create .deb package that will install program into '/usr/bin' folder and place config file into '/etc' folder create 'usr/bin' and 'etc' paths in current folder and move there program and config file.
+=item - You have program 'myprg' that is using config file 'myprg.conf'. To create .deb package that will install program into '/usr/bin' directory and place config file into '/etc' directory create 'usr/bin' and 'etc' paths in current directory and move there program and config file.
 
 =back
 
@@ -511,7 +511,7 @@ This document describes dropkg version 2.0.8
 
 =over 4
 
-=item - Go into folder that contains .deb package and run C<dropkg> without any option. If there is more than one .deb file in current directory pass filename as first parameter C<dropkg filename.deb>.
+=item - Go into directory that contains .deb package and run C<dropkg> without any option. If there is more than one .deb file in current directory pass filename as first parameter C<dropkg filename.deb>.
 
 =back
 
