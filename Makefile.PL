@@ -5,7 +5,7 @@ WriteMakefile(
     NAME              => 'App::dropkg',
     VERSION_FROM      => 'dropkg', # finds $VERSION, requires EU::MM from perl >= 5.5
     PREREQ_PM         => {}, # e.g., Module::Name => 1.1
-    ABSTRACT_FROM     => 'dropkg', # retrieve abstract from module
+    ABSTRACT            => 'creates debian binary packages',
     AUTHOR            => q{Zdeněk Bohuněk <zdenek@cpan.org>},
     LICENSE           => 'artistic_2',
     'EXE_FILES'	      => ['dropkg'],
