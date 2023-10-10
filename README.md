@@ -4,15 +4,15 @@ dropkg - creates debian binary packages
 
 # VERSION
 
-This document describes dropkg version 2.0.7
+This document describes dropkg version 2.0.8
 
- # GIF
+# GIF
 
 ![dropkg](https://raw.githubusercontent.com/z448/dropkg/master/dropkg.gif)
 
 # INSTALLATION
 
-iOS
+##### iOS
 
 ```bash
 git clone http://github.com/z448/dropkg
@@ -20,7 +20,7 @@ cd dropkg/deb
 sudo dpkg -i dropkg_2.0.5_all.deb
 ```
 
-Linux/Unix
+##### Linux/Unix
 
 ```bash
 git clone http://github.com/z448/dropkg
@@ -31,40 +31,93 @@ make install
                 
 # SYNOPSIS
 
-- Without any option dropkg creates debian binary package with contents of current directory if there is control file in it. If there is debian package in current directory dropkg will extract its contents into current directory.
-- `-v` show version
-- `-c` set compression for data archive, recognized compression options: gzip, bzip2, lzma, xz, zstd
-- `-t` show control file template  
-- `-m` show debian policy manual 
+- If there is a control file in current directory dropkg will create debian binary package with contents of current directory. If there is a debian package in current directory dropkg will extract its contents into current directory.
+    - `-v` show version
+    - `-c` set compression for data archive: gzip, bzip2, lzma, xz, zstd
+    - `-t` show control file template  
+    - `-m` show debian policy manual 
+    - `-h` show help
 
 # EXAMPLES
 
-- To create .deb package:
+##### Creating .deb package:
+    
+- You have program 'myprg' that is using config file 'myprg.conf'. To create .deb package that will install program into '/usr/bin' folder and place config file into '/etc' folder create 'usr/bin' and 'etc' paths in current folder and move there program and config file.
+```sh
+$ pwd
+~/myTmp
 
-    You want to create .deb package that will install your program 'myprg' into '/usr/bin' directory. Create empty directory of any name then create 'usr/bin' path in that directory and move your program into that path.
+$ ls
+myprg   myprg.conf
 
-    `mkdir MyTmp`
+$ mkdir -p usr/bin
+$ mv myprg usr/bin/
+$ mkdir etc
+$ mv myprg.conf etc/
+```
 
-    `mkdir -p MyTmp/usr/bin`
+- Create 'control' file. To see control file template use `-t` option.
+```bash
+$ dropkg -t | grep mandatory > control
 
-    `mv myprg MyTmp/usr/bin`
+$ cat control
+Maintainer: (mandatory)
+Package: (mandatory)
+Version: (mandatory)
+Architecture: (mandatory)
+Depends: (mandatory if package has dependencies)
+Description: (mandatory)
+```
 
-    Place 'control' file into 'MyTmp' directory. `dropkg -t` can print template for control file.
+- Fill in mandatory parts of control file with editor and use dropkg without any option to create .deb package.
+```bash
+$ ls
+control  etc  usr
 
-    `mv control MyTmp`
+$ cat control
+Package: myprg
+Version: 1.0
+Architecture: iphoneos-arm
+Depends: perl
+Maintainer: zdenek <zdenek@cpan.org>
+Description: my test program
 
-    `cd MyTmp`
+$ tree
+.
+├── control
+├── etc
+│   └── myprg.conf
+└── usr
+    └── bin
+        └── myprg
 
-    Run dropkg without any options to create .deb package.
+$ dropkg
+myprg_1.0_iphoneos-arm.deb
+```
 
-    `dropkg`
+- dropkg is using control file to create name for .deb package, Package\_Version\_Architecture.deb. To have different .deb filename pass it as first parameter `dropkg filename.deb`.
+- by default gzip compression is used for data unless '~/.dropkg' config contains different compression option. Compression can be also set by `-c` switch.  
 
-    Name of .deb file is taked from control file, Package\_Version\_Architecture.deb. To have different .deb filename pass it as 1st parameter `dropkg filename.deb`.
-    By default gzip compression is used for data unless ~/.dropkg config contains different compression option. Compression can be also set by `-c` switch which has precedence over value in config.  
 
-- To extract .deb package:
+##### Extracting .deb package:
+- Go into folder that contains .deb package and run `dropkg` without any option. If there is more than one .deb file in current directory pass filename as first parameter `dropkg filename.deb`.
+```bash
+$ ls
+myprg_1.0_iphoneos-arm.deb
 
-    Go into directory that contains .deb package and run `dropkg` without any option. If there is more than one .deb file in current directory pass filename as first parameter `dropkg filename.deb`.
+$ dropkg
+.
+├── control
+├── etc
+│   └── myprg.conf
+├── md5sums
+└── usr
+    └── bin
+        └── myprg
+
+$ ls
+control  etc  md5sums  usr
+```
 
 # DEVELOPMENT
 

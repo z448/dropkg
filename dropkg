@@ -12,7 +12,7 @@ use Time::HiRes qw( usleep );
 use Digest::MD5 qw( md5_hex );
 use autodie;
 
-our $VERSION = "v2.0.7";
+our $VERSION = "v2.0.8";
 
 delete @ENV{ qw( IFS CDPATH ENV BASH_ENV ) };
 
@@ -191,15 +191,6 @@ sub dropkg{
     for( 0..16 ){
         $usleep = $usleep - 8000;
         if( $usleep < 8000 ){ $usleep = 8000 }
-=head1        
-        if( $_ == 1 ){ print "d\n" }
-        elsif( $_ == 2 ){ print "r\n" }
-        elsif( $_ == 4 ){ print "o\n" }
-        elsif( $_ == 7 ){ print "p\n" }
-        elsif( $_ == 11 ){ print "k\n" }
-        elsif( $_ == 16 ){ print "g\n" }
-        else { print "\n" }
-=cut
 	    print "\n";
         usleep( $usleep );
     }
@@ -367,12 +358,12 @@ sub unpackdeb {
 }
 
 sub help {
-	print "\ndropkg" . " - creates debian binary packages\n\n";
-	print "Usage:\n\tCreates .deb package if there is a 'control' file in current directory. If there is a '.deb' package in current directory it will extract it.\n\n";
+	print "Usage:\tWithout any option dropkg creates .deb package if there is a 'control' file in current directory. If there is a '.deb' package in current directory it will extract it.\n\n";
 	print "\t" . "-v  show version\n";
-	print "\t" . "-c  compression for data (gzip, bzip2, lzma, xz, zstd)\n";
-	print "\t" . "-t  print control file template\n";
-	print "\t" . "-m  open debian policy manual\n\n";
+	print "\t" . "-c  set compression for data archive: gzip, bzip2, lzma, xz, zstd\n";
+	print "\t" . "-t  show control file template\n";
+	print "\t" . "-m  show debian policy manual\n\n";
+	print "To read more use 'perldoc dropkg'\n\n";
 }
 
 
@@ -400,55 +391,151 @@ dropkg - creates debian binary packages
 
 =head1 VERSION
 
-This document describes dropkg version 2.0.5
+This document describes dropkg version 2.0.8
 
 =head1 SYNOPSIS
 
-=over 10
+=over 4
 
-=item Without any option dropkg creates debian binary package with contents of current directory if there is control file in it. If there is debian package in current directory dropkg will extract its contents into current directory.
+=item If there is a control file in current directory dropkg will create debian binary package with contents of current directory. If there is a debian package in current directory dropkg will extract its contents into current directory.
 
+=over 4
 
 =item C<-v> show version
 
-=item C<-c> set compression for data archive, recognized compression options: gzip, bzip2, lzma, xz, zstd
+=item C<-c> set compression for data archive: gzip, bzip2, lzma, xz, zstd
 
 =item C<-t> show control file template  
 
 =item C<-m> show debian policy manual 
 
+=item C<-h> show help
+
+=back
+
 =back
 
 =head1 EXAMPLES
 
-=over 10
+=over 4
 
-=item To create .deb package:
+=item Creating .deb package:
 
-You want to create .deb package that will install your program 'myprg' into '/usr/bin' directory. Create empty directory of any name then create 'usr/bin' path in that directory and move your program into that path.
+=over 4
 
-C<mkdir MyTmp>
+=item - You have program 'myprg' that is using config file 'myprg.conf'. To create .deb package that will install program into '/usr/bin' folder and place config file into '/etc' folder create 'usr/bin' and 'etc' paths in current folder and move there program and config file.
 
-C<mkdir -p MyTmp/usr/bin>
+=back
 
-C<mv myprg MyTmp/usr/bin>
+=begin text
 
-Place 'control' file into 'MyTmp' directory. C<dropkg -t> can print template for control file.
+            $ pwd
+            ~/myTmp
 
-C<mv control MyTmp>
+            $ ls
+            myprg   myprg.conf
 
-C<cd MyTmp>
+            $ mkdir -p usr/bin
+            $ mv myprg usr/bin/
+            $ mkdir etc
+            $ mv myprg.conf etc/
 
-Run dropkg without any options to create .deb package.
 
-C<dropkg>
 
-Name of .deb file is taked from control file, Package_Version_Architecture.deb. To have different .deb filename pass it as 1st parameter C<dropkg filename.deb>.
-By default gzip compression is used for data unless ~/.dropkg config contains different compression option. Compression can be also set by C<-c> switch which has precedence over value in config.  
+=end text
 
-=item To extract .deb package:
+=over 4
 
-Go into directory that contains .deb package and run C<dropkg> without any option. If there is more than one .deb file in current directory pass filename as first parameter C<dropkg filename.deb>.
+=item - Create 'control' file. To see control file template use C<-t> option.
+
+=back
+
+=begin text
+
+            $ dropkg -t | grep mandatory > control
+
+            $ cat control
+            Maintainer: (mandatory)
+            Package: (mandatory)
+            Version: (mandatory)
+            Architecture: (mandatory)
+            Depends: (mandatory if package has dependencies)
+            Description: (mandatory)
+
+
+
+=end text
+
+=over 4
+
+=item - Fill in mandatory parts of control file with editor and use dropkg without any option to create .deb package.
+
+=back
+
+=begin text
+
+            $ ls
+            control  etc  usr
+
+            $ cat control
+            Package: myprg
+            Version: 1.0
+            Architecture: iphoneos-arm
+            Depends: perl
+            Maintainer: zdenek <zdenek@cpan.org>
+            Description: my test program
+
+            $ tree
+            .
+            ├── control
+            ├── etc
+            │   └── myprg.conf
+            └── usr
+                └── bin
+                    └── myprg
+
+            $ dropkg
+            myprg_1.0_iphoneos-arm.deb
+                        
+=end text
+
+=over 4
+
+=item - dropkg is using control file to create name for .deb package, Package_Version_Architecture.deb. To have different .deb filename pass it as first parameter C<dropkg filename.deb>.
+
+=item - by default gzip compression is used for data unless '~/.dropkg' config contains different compression option. Compression can be also set by C<-c> switch.  
+
+=back
+
+=item Extracting .deb package:
+
+=over 4
+
+=item - Go into folder that contains .deb package and run C<dropkg> without any option. If there is more than one .deb file in current directory pass filename as first parameter C<dropkg filename.deb>.
+
+=back
+
+=begin text
+
+            $ ls
+            myprg_1.0_iphoneos-arm.deb
+
+            $ dropkg
+            .
+            ├── control
+            ├── etc
+            │   └── myprg.conf
+            ├── md5sums
+            └── usr
+                └── bin
+                    └── myprg
+
+            $ ls
+            control  etc  md5sums  usr
+
+
+
+=end text
 
 =back
 
