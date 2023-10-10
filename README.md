@@ -24,6 +24,7 @@ sudo dpkg -i dropkg_2.0.8_all.deb
 
 ```bash
 git clone http://github.com/z448/dropkg
+cd dropkg
 perl Makefile.PL
 make
 make install
