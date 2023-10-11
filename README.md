@@ -4,7 +4,7 @@ dropkg - creates debian binary packages
 
 # VERSION
 
-This document describes dropkg version 2.0.11
+This document describes dropkg version 2.0.12
 
 # GIF
 
@@ -17,7 +17,7 @@ This document describes dropkg version 2.0.11
 ```bash
 git clone http://github.com/z448/dropkg
 cd dropkg/deb
-sudo dpkg -i dropkg_2.0.11_iphoneos-arm.deb
+sudo dpkg -i dropkg_2.0.12_iphoneos-arm.deb
 ```
 
 ##### Linux/Unix
@@ -35,6 +35,7 @@ make install
 - If there is a control file in current directory dropkg will create debian binary package with contents of current directory. If there is a debian package in current directory dropkg will extract its contents into current directory.
     - `-v` show version
     - `-c` set compression for data archive: gzip, bzip2, lzma, xz, zstd
+    - `-s` generate md5sums file and include it in package
     - `-t` show control file template  
     - `-m` show debian policy manual 
     - `-h` show help

@@ -12,12 +12,12 @@ use Time::HiRes qw( usleep );
 use Digest::MD5 qw( md5_hex );
 use autodie;
 
-our $VERSION = "v2.0.11";
+our $VERSION = "v2.0.12";
 
 delete @ENV{ qw( IFS CDPATH ENV BASH_ENV ) };
 
 my %opt;
-getopts('tvmhc:', \%opt);
+getopts('stvmhc:', \%opt);
 
 
 sub debian_manual{
@@ -50,13 +50,14 @@ sub conf{
         print $conf "# recognized options for data archive compression are: gzip, bzip2, lzma, xz, zstd\ncompression: $dropkg{compression}\n\n"; 
         close $conf;
     }
+    $dropkg{compression} = $opt{c} if $opt{c};
+    $dropkg{compression_ext} = $dropkg{compression};
+    $dropkg{compression_ext} =~ s/gzip/gz/;
+    $dropkg{compression_ext} =~ s/bzip2/bz2/;
+    $dropkg{compression_ext} =~ s/zstd/zst/;
 
+    $dropkg{md5sums_file} = 1 if $opt{s};
 }
-$dropkg{compression} = $opt{c} if $opt{c};
-$dropkg{compression_ext} = $dropkg{compression};
-$dropkg{compression_ext} =~ s/gzip/gz/;
-$dropkg{compression_ext} =~ s/bzip2/bz2/;
-$dropkg{compression_ext} =~ s/zstd/zst/;
 
 
 sub dep{
@@ -365,6 +366,7 @@ sub help {
 	print "Usage:\tWithout any option dropkg creates .deb package if there is a 'control' file in current directory. If there is a '.deb' package in current directory it will extract it.\n\n";
 	print "\t" . "-v  show version\n";
 	print "\t" . "-c  set compression for data archive: gzip, bzip2, lzma, xz, zstd\n";
+	print "\t" . "-s  generate md5sums file and include it in package\n";
 	print "\t" . "-t  show control file template\n";
 	print "\t" . "-m  show debian policy manual\n\n";
 	print "To read more use 'perldoc dropkg'\n\n";
@@ -395,7 +397,7 @@ dropkg - creates debian binary packages
 
 =head1 VERSION
 
-This document describes dropkg version 2.0.11
+This document describes dropkg version 2.0.12
 
 =head1 SYNOPSIS
 
@@ -408,6 +410,8 @@ This document describes dropkg version 2.0.11
 =item C<-v> show version
 
 =item C<-c> set compression for data archive: gzip, bzip2, lzma, xz, zstd
+
+=item C<-s> generate md5sums file and include it in package
 
 =item C<-t> show control file template  
 
