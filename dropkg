@@ -12,7 +12,7 @@ use Time::HiRes qw( usleep );
 use Digest::MD5 qw( md5_hex );
 use autodie;
 
-our $VERSION = "v2.0.10";
+our $VERSION = "v2.0.11";
 
 delete @ENV{ qw( IFS CDPATH ENV BASH_ENV ) };
 
@@ -31,7 +31,7 @@ sub debian_manual{
 }
 
 
-my %dropkg = ( animation => 1, compression => 'gzip' );
+my %dropkg = ( animation => 1, compression => 'gzip', md5sums_file => 0 );
 sub conf{
     if( -f "$ENV{HOME}/.dropkg" ){
         open my $conf, '<', "$ENV{HOME}/.dropkg";
@@ -40,13 +40,14 @@ sub conf{
             next if /(#|^$)/;
             next unless /:/;
             my( $field, $value ) = split /:\s*/, $_;
-            $dropkg{$field} = $value if $field =~ /^(animation|compression)$/;
+            $dropkg{$field} = $value if $field =~ /^(animation|compression|md5sums_file)$/;
 	    }
     }
     else {
         open my $conf, '>', "$ENV{HOME}/.dropkg";
         print $conf "animation: $dropkg{animation}\n\n";
-        print $conf "# recognized options for compression are: gzip, bzip2, lzma, xz, zstd\ncompression: $dropkg{compression}\n\n"; 
+        print $conf "# if md5sums file should be generated before packege is created\nmd5sums_file: $dropkg{md5sums_file}\n\n"; 
+        print $conf "# recognized options for data archive compression are: gzip, bzip2, lzma, xz, zstd\ncompression: $dropkg{compression}\n\n"; 
         close $conf;
     }
 
@@ -231,22 +232,23 @@ sub packdir{
     }
     closedir $dh;
 
-    unlink './md5sums' if -f './md5sums';
     my @data_file = ();
     find{ untaint => 1, wanted => sub{
         unless( /^\.$|^\.\.$|^control$|^preinst$|^postinst$|^prerm$|^postrm$|^conffiles$|^shlibs$|^triggers$|^md5sums$/ ) {
             push(@data_file, "$File::Find::dir/$_") if -f;
         }
     } }, ('.');
-    for my $file( @data_file ){
-        open( my $rfh, '<', "$file") || die "Can't open file $file: $!";
-        my $md5 = Digest::MD5->new->addfile($rfh)->hexdigest;
-        close $rfh;
+    if( $dropkg{md5sums_file} ){
+        for my $file( @data_file ){
+            open( my $rfh, '<', "$file") || die "Can't open file $file: $!";
+            my $md5 = Digest::MD5->new->addfile($rfh)->hexdigest;
+            close $rfh;
 
-        open( my $wfh, '>>', './md5sums') || die "Can't open file ./md5sums: $!";
-        $file =~ s/^\.\///;
-        print $wfh "$md5  $file\n";
-        close $wfh;
+            open( my $wfh, '>>', './md5sums') || die "Can't open file ./md5sums: $!";
+            $file =~ s/^\.\///;
+            print $wfh "$md5  $file\n";
+            close $wfh;
+        }
     }
 
     die "dropkg: unsupported compression $dropkg{compression}\n" unless $dropkg{compression} =~ /^(gzip|bzip2|lzma|xz|zstd)$/;
@@ -258,7 +260,7 @@ sub packdir{
     chdir 'DEBIAN';
     
     copy('../control', 'control') and unlink '../control';
-    copy('../md5sums', 'md5sums') and unlink '../md5sums';
+    if( -f '../md5sums'){ copy('../md5sums', 'md5sums') and unlink '../md5sums' }
     if( -f '../preinst'){ copy('../preinst', 'preinst') and unlink '../preinst' }
     if( -f '../postinst'){ copy('../postinst', 'postinst') and unlink '../postinst' }
     if( -f '../prerm'){ copy('../prerm', 'prerm') and unlink '../prerm' }
@@ -351,7 +353,6 @@ sub unpackdeb {
     open STDOUT, ">&SAVEOUT";
     open STDERR, ">&SAVEERR";
 
-    #unlink './md5sums' if -e './md5sums';
     unlink @tar_file;
 
 
@@ -394,7 +395,7 @@ dropkg - creates debian binary packages
 
 =head1 VERSION
 
-This document describes dropkg version 2.0.10
+This document describes dropkg version 2.0.11
 
 =head1 SYNOPSIS
 
@@ -506,8 +507,6 @@ This document describes dropkg version 2.0.10
 
 =item - dropkg is using control file to create name for .deb package, Package_Version_Architecture.deb. To have different .deb filename pass it as first parameter C<dropkg filename.deb>.
 
-=item - md5sums file is generated before package is created
-
 =item - by default gzip compression is used for data unless '~/.dropkg' config contains different compression option. Compression can be also set by C<-c> switch.  
 
 =back
@@ -530,21 +529,16 @@ This document describes dropkg version 2.0.10
             ├── control
             ├── etc
             │   └── myprg.conf
-            ├── md5sums
             └── usr
                 └── bin
                         └── myprg
 
             $ ls
-            control  etc  md5sums  usr
+            control  etc  usr
 
 
 
 =end text
-
-=over 4
-
-=back
 
 =back
 
