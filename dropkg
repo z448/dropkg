@@ -12,7 +12,7 @@ use Time::HiRes qw( usleep );
 use Digest::MD5 qw( md5_hex );
 use autodie;
 
-our $VERSION = "v2.0.9";
+our $VERSION = "v2.0.10";
 
 delete @ENV{ qw( IFS CDPATH ENV BASH_ENV ) };
 
@@ -244,7 +244,8 @@ sub packdir{
         close $rfh;
 
         open( my $wfh, '>>', './md5sums') || die "Can't open file ./md5sums: $!";
-        print $wfh "$md5 $file\n";
+        $file =~ s/^\.\///;
+        print $wfh "$md5  $file\n";
         close $wfh;
     }
 
@@ -350,7 +351,9 @@ sub unpackdeb {
     open STDOUT, ">&SAVEOUT";
     open STDERR, ">&SAVEERR";
 
+    #unlink './md5sums' if -e './md5sums';
     unlink @tar_file;
+
 
     open my $tree, '-|', 'tree';
     while(<$tree>){ print }
@@ -391,7 +394,7 @@ dropkg - creates debian binary packages
 
 =head1 VERSION
 
-This document describes dropkg version 2.0.8
+This document describes dropkg version 2.0.10
 
 =head1 SYNOPSIS
 
@@ -503,6 +506,8 @@ This document describes dropkg version 2.0.8
 
 =item - dropkg is using control file to create name for .deb package, Package_Version_Architecture.deb. To have different .deb filename pass it as first parameter C<dropkg filename.deb>.
 
+=item - md5sums file is generated before package is created
+
 =item - by default gzip compression is used for data unless '~/.dropkg' config contains different compression option. Compression can be also set by C<-c> switch.  
 
 =back
@@ -528,7 +533,7 @@ This document describes dropkg version 2.0.8
             ├── md5sums
             └── usr
                 └── bin
-                    └── myprg
+                        └── myprg
 
             $ ls
             control  etc  md5sums  usr
@@ -536,6 +541,10 @@ This document describes dropkg version 2.0.8
 
 
 =end text
+
+=over 4
+
+=back
 
 =back
 
