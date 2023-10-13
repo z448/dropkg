@@ -12,7 +12,7 @@ use Time::HiRes qw( usleep );
 use Digest::MD5 qw( md5_hex );
 use autodie;
 
-our $VERSION = "v2.0.12";
+our $VERSION = "v2.0.13";
 
 delete @ENV{ qw( IFS CDPATH ENV BASH_ENV ) };
 
@@ -42,6 +42,7 @@ sub conf{
             my( $field, $value ) = split /:\s*/, $_;
             $dropkg{$field} = $value if $field =~ /^(animation|compression|md5sums_file)$/;
 	    }
+        close $conf;
     }
     else {
         open my $conf, '>', "$ENV{HOME}/.dropkg";
@@ -397,7 +398,7 @@ dropkg - creates debian binary packages
 
 =head1 VERSION
 
-This document describes dropkg version 2.0.12
+This document describes dropkg version 2.0.13
 
 =head1 SYNOPSIS
 
