@@ -11,7 +11,7 @@ use Time::HiRes qw( usleep );
 use Digest::MD5 qw( md5_hex );
 use autodie;
 
-our $VERSION = "v2.0.14";
+our $VERSION = "v2.0.15";
 
 delete @ENV{ qw( IFS CDPATH ENV BASH_ENV ) };
 
@@ -75,7 +75,6 @@ sub dep{
         chomp;
         $bin = $_;
     }
-    close $whichph;
     return unless $bin;
 
     open( my $fileph, "-|", 'file', $bin );
@@ -83,7 +82,6 @@ sub dep{
         chomp;
         $bin = "perl $bin" if /Perl/;
     }
-    close $fileph;
 
     return $bin;
 }
@@ -426,7 +424,7 @@ dropkg - creates debian binary packages
 
 =head1 VERSION
 
-This document describes dropkg version 2.0.14
+This document describes dropkg version 2.0.15
 
 =head1 SYNOPSIS
 
