@@ -4,7 +4,7 @@ dropkg - creates debian binary packages
 
 # VERSION
 
-This document describes dropkg version 2.0.13
+This document describes dropkg version 2.0.14
 
 # GIF
 
@@ -17,7 +17,7 @@ This document describes dropkg version 2.0.13
 ```bash
 git clone http://github.com/z448/dropkg
 cd dropkg/deb
-sudo dpkg -i dropkg_2.0.13_iphoneos-arm.deb
+sudo dpkg -i dropkg_2.0.14_all.deb
 ```
 
 ##### Linux/Unix
