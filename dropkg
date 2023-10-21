@@ -11,7 +11,7 @@ use Time::HiRes qw( usleep );
 use Digest::MD5 qw( md5_hex );
 use autodie;
 
-our $VERSION = "v2.0.15";
+our $VERSION = "v2.0.16";
 
 delete @ENV{ qw( IFS CDPATH ENV BASH_ENV ) };
 
@@ -87,9 +87,9 @@ sub dep{
 }
 
 my $ar = dep('ar');
-unless( $ar and dep('tree') ){ print "'ar' and 'tree' dependencies are missing. You can use cpan to install them (cpan Archive::Ar Filesys::Tree).\n" and exit }
+my $tree = dep('tree');
 unless( $ar ){ print "'ar' dependency is missing. You can use cpan to install it (cpan Archive::Ar).\n" and exit }
-unless( dep('tree') ){ print "'tree' dependency is missing. You can use cpan to install it (cpan Filesys::Tree).\n" and exit }
+unless( $tree ){ print "'tree' dependency is missing. You can use cpan to install it (cpan Filesys::Tree).\n" and exit }
 
 my %control;
 if( -f "$ENV{HOME}/dropkg_control" ){
@@ -384,9 +384,9 @@ sub unpackdeb {
     unlink @tar_file;
 
 
-    open my $tree, '-|', dep('tree');
-    while(<$tree>){ print }
-    close $tree;
+    open( my $treeph, '-|', $tree);
+    while(<$treeph>){ print }
+    close $treeph;
 }
 
 sub help {
@@ -424,7 +424,7 @@ dropkg - creates debian binary packages
 
 =head1 VERSION
 
-This document describes dropkg version 2.0.15
+This document describes dropkg version 2.0.16
 
 =head1 SYNOPSIS
 
