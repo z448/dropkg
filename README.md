@@ -12,17 +12,16 @@ This document describes dropkg version 2.0.17
 
 # INSTALLATION
 
-##### iOS
-
 ```bash
 git clone http://github.com/z448/dropkg
 cd dropkg/deb
 dpkg -i dropkg_2.0.17_all.deb
 ```
 
-##### Linux/Unix
+### OR
 
 ```bash
+cpan Filesys::Tree Archive::Ar
 git clone http://github.com/z448/dropkg
 cd dropkg
 perl Makefile.PL
