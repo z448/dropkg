@@ -2,7 +2,6 @@
 
 use strict;
 use warnings;
-use Archive::Tar;
 use File::Copy;
 use File::Find;
 use File::Path qw( make_path remove_tree);
@@ -12,7 +11,7 @@ use Time::HiRes qw( usleep );
 use Digest::MD5 qw( md5_hex );
 use autodie;
 
-our $VERSION = "v2.0.13";
+our $VERSION = "v2.0.14";
 
 delete @ENV{ qw( IFS CDPATH ENV BASH_ENV ) };
 
@@ -21,13 +20,9 @@ getopts('stvmhc:', \%opt);
 
 
 sub debian_manual{
-        open my $openph, '-|', 'which', 'open';
-        while(<$openph>){
-            chomp;
-            if( /\/open$/ ){
-                system("open 'https://www.debian.org/doc/debian-policy/ch-controlfields.html#s-f-Package'");
-            } else { print "see Debian Policy Manual at https://www.debian.org/doc/debian-policy/ch-controlfields.html#s-f-Package\n" }
-        }
+    if( dep('open') ){
+        system("open 'https://www.debian.org/doc/debian-policy/ch-controlfields.html#s-f-Package'");
+    } else { print "see Debian Policy Manual at https://www.debian.org/doc/debian-policy/ch-controlfields.html#s-f-Package\n" }
 }
 
 
@@ -63,16 +58,40 @@ sub conf{
 
 sub dep{
     my $dep = shift;
-
-    open( my $depph, "-|", 'which', $dep );
-    while(<$depph>){
-        chomp;
-        return $1 if /\/($dep)$/;
+    
+    if($dep eq 'ar'){
+        my $module = eval {
+            require Archive::Ar;
+            Archive::Ar->import();
+            1;
+        };
+        return 'module' if $module;
     }
+    
+
+    my $bin;
+    open( my $whichph, "-|", 'which', $dep );
+    while(<$whichph>){
+        chomp;
+        $bin = $_;
+    }
+    close $whichph;
+    return unless $bin;
+
+    open( my $fileph, "-|", 'file', $bin );
+    while(<$fileph>){
+        chomp;
+        $bin = "perl $bin" if /Perl/;
+    }
+    close $fileph;
+
+    return $bin;
 }
 
-unless( dep('ar') ){ print "'ar' dependency is missing. Please use cpan to install it 'cpan PerlPowerTools'.\n" and exit }
-unless( dep('tree') ){ print "'tree' dependency is missing. Please use cpan to install it 'cpan Filesys::Tree'.\n" and exit }
+my $ar = dep('ar');
+unless( $ar and dep('tree') ){ print "'ar' and 'tree' dependencies are missing. You can use cpan to install them (cpan Archive::Ar Filesys::Tree).\n" and exit }
+unless( $ar ){ print "'ar' dependency is missing. You can use cpan to install it (cpan Archive::Ar).\n" and exit }
+unless( dep('tree') ){ print "'tree' dependency is missing. You can use cpan to install it (cpan Filesys::Tree).\n" and exit }
 
 my %control;
 if( -f "$ENV{HOME}/dropkg_control" ){
@@ -295,8 +314,12 @@ sub packdir{
     open STDERR, ">& STDOUT";
     select STDERR; $| = 1;
     select STDOUT; $| = 1;
-    
-	system("ar -r $debname debian-binary control.tar.gz data.tar.$dropkg{compression_ext}");
+
+    if( $ar eq 'module'){
+        my $archive = Archive::Ar->new;
+        $archive->add_files( './debian-binary', './control.tar.gz', "./data.tar.$dropkg{compression_ext}" );
+        $archive->write( $debname );
+    } else { system("$ar -r $debname debian-binary control.tar.gz data.tar.$dropkg{compression_ext}") }
 
     close STDOUT;
     close STDERR;
@@ -315,7 +338,12 @@ sub unpackdeb {
     my $deb = shift;
     unless( -f $deb ){ print "File $deb is not in current directory.\n" }
 
-    system( "ar -x $deb");
+    if( $ar eq 'module'){
+        my $archive = Archive::Ar->new;
+        $archive->read( "./$deb" );
+        $archive->extract;
+    } else { system( "$ar -x $deb") }
+
     unlink './debian-binary';
 
     my @tar_file = ();
@@ -358,7 +386,7 @@ sub unpackdeb {
     unlink @tar_file;
 
 
-    open my $tree, '-|', 'tree';
+    open my $tree, '-|', dep('tree');
     while(<$tree>){ print }
     close $tree;
 }
@@ -398,7 +426,7 @@ dropkg - creates debian binary packages
 
 =head1 VERSION
 
-This document describes dropkg version 2.0.13
+This document describes dropkg version 2.0.14
 
 =head1 SYNOPSIS
 
